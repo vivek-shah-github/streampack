@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stream Pack Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Chakra+Petch:wght@600&family=Saira+Condensed:wght@800&family=Teko:wght@600&family=Pixelify+Sans:wght@700&family=Russo+One&family=Anton&family=Bungee&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root {
+  --ink: #1c1f24; --panel: #24282e; --raise: #2d3239; --line: #3c424c; --line2: #4c5460;
+  --text: #eef0f2; --muted: #a3abb6; --tally: #ff4b3e; --tally-dim: rgba(255,75,62,.16); --focus: #79b6ff;
+  --f: "Archivo", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+body { margin: 0; background: var(--ink); color: var(--text); font: 400 15px/1.45 var(--f); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ---------- top bar ---------- */
+.top { display: flex; align-items: center; gap: 20px; padding: 18px clamp(16px, 3vw, 36px); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.brand { margin-right: auto; min-width: 0; }
+.brand h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; font-stretch: 125%; letter-spacing: -.01em; line-height: 1.05; }
+.brand p { margin: 4px 0 0; color: var(--muted); font-size: 14px; font-stretch: 90%; }
+.brand p b { color: var(--text); font-weight: 600; }
+.btn { appearance: none; border: 1px solid var(--line2); background: var(--raise); border-radius: 6px; padding: 9px 14px; font-weight: 600; cursor: pointer; font-stretch: 95%; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--text); color: var(--ink); border-color: var(--text); font-weight: 700; padding: 11px 18px; }
+.btn.primary:hover { background: #fff; }
+.btn.primary[disabled] { opacity: .6; cursor: progress; }
+.btn.small { padding: 6px 10px; font-size: 13px; }
+.btn.plain { background: transparent; }
+
+/* ---------- layout ---------- */
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 460px; align-items: start; }
+.stagecol { position: sticky; top: 0; padding: 24px clamp(16px, 3vw, 36px); min-width: 0; }
+.formcol { border-left: 1px solid var(--line); background: var(--panel); min-height: calc(100vh - 80px); }
+@media (max-width: 1060px) {
+  .app { grid-template-columns: 1fr; }
+  .stagecol { position: static; }
+  .formcol { border-left: 0; border-top: 1px solid var(--line); }
+}
+
+/* ---------- monitor ---------- */
+.mon-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; font-stretch: 90%; }
+.tally { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--tally); }
+.tally::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--tally); box-shadow: 0 0 0 3px var(--tally-dim); }
+.mon-head .res { color: var(--muted); font-variant-numeric: tabular-nums; }
+.mon-head .file { margin-left: auto; color: var(--muted); font-size: 13px; }
+.monitor-wrap { display: flex; justify-content: center; }
+.monitor { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #0a0b0d; outline: 3px solid var(--tally); outline-offset: 0; overflow: hidden; }
+.monitor.vert { width: auto; height: min(74vh, 900px); aspect-ratio: 9 / 16; }
+@media (max-width: 1060px) { .monitor.vert { height: min(80vh, 760px); } }
+.monitor iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; color-scheme: normal; }
+.ghost { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; }
+.ghost .feed { position: absolute; inset: 0;
+  background: linear-gradient(180deg, #6d8aa6 0%, #a9c0cc 44%, #7d8a57 45%, #59663a 70%, #3b4526 100%); }
+
+.ghost .hole { position: absolute; display: grid; place-items: center; overflow: hidden; }
+.ghost .hole.cam { background: radial-gradient(circle at 50% 35%, #56606e, #23282f 75%); }
+.ghost .hole.cam svg { width: 46%; height: auto; fill: #7c8794; opacity: .55; margin-top: 18%; }
+.ghost .hole.game { background: linear-gradient(180deg, #6d8aa6 0%, #a9c0cc 50%, #6c7a48 51%, #3b4526 100%); }
+.ghost .lbl { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); font: 600 26px var(--f); color: rgba(255,255,255,.75); background: rgba(0,0,0,.35); padding: 4px 12px; white-space: nowrap; }
+.ghost .chat { position: absolute; display: flex; flex-direction: column; justify-content: flex-end; padding: 10px 6px; gap: 8px; overflow: hidden; }
+.ghost .msg { background: rgba(0,0,0,.72); border-left: 4px solid var(--acc, #fff); padding: 10px 14px; }
+.ghost .msg b { display: block; font-size: 18px; color: var(--acc, #fff); }
+.ghost .msg span { font-size: 22px; color: var(--txt, #fff); }
+
+.switcher { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; align-items: center; }
+.key { appearance: none; border: 1px solid var(--line2); background: var(--raise); color: var(--text); border-radius: 4px; padding: 10px 14px;
+  font-weight: 700; font-stretch: 85%; cursor: pointer; min-width: 92px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.35); }
+.key:hover { border-color: var(--muted); }
+.key[aria-pressed="true"] { background: var(--tally); border-color: var(--tally); color: #fff; }
+.seg { display: inline-flex; border: 1px solid var(--line2); border-radius: 6px; overflow: hidden; }
+.seg button { appearance: none; border: 0; background: transparent; padding: 8px 12px; cursor: pointer; font-weight: 600; font-stretch: 92%; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--line2); }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--ink); }
+.switcher .seg { margin-left: auto; }
+.alerts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; color: var(--muted); font-size: 13px; }
+.alerts span { margin-right: 4px; font-stretch: 90%; }
+
+/* ---------- form ---------- */
+.intro { padding: 22px 24px 6px; }
+.intro details { border: 1px solid var(--line); border-radius: 8px; background: var(--raise); }
+.intro summary { cursor: pointer; padding: 12px 14px; font-weight: 700; font-stretch: 105%; }
+.intro .how { padding: 0 16px 14px; color: var(--muted); }
+.intro .how p { margin: 0 0 10px; max-width: 62ch; }
+.intro .how b { color: var(--text); font-weight: 600; }
+section.grp { padding: 20px 24px 24px; border-bottom: 1px solid var(--line); }
+section.grp h2 { margin: 0 0 4px; font-size: 21px; font-weight: 750; font-stretch: 112%; letter-spacing: -.005em; }
+section.grp > p.hint { margin: 0 0 16px; color: var(--muted); font-size: 14px; max-width: 58ch; }
+.field { display: grid; gap: 6px; margin-bottom: 14px; }
+.field > span { font-size: 13px; font-weight: 600; color: var(--muted); font-stretch: 92%; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row3 { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; }
+input[type=text], input[type=number], input[type=password], textarea, select {
+  width: 100%; background: var(--ink); border: 1px solid var(--line2); border-radius: 6px; padding: 9px 11px; min-width: 0; }
+input:focus, textarea:focus { border-color: var(--focus); outline: none; box-shadow: 0 0 0 2px rgba(121,182,255,.25); }
+textarea { resize: vertical; min-height: 92px; line-height: 1.45; }
+.check { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; cursor: pointer; }
+.check input { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--tally); }
+.small-note { font-size: 13px; color: var(--muted); margin: -6px 0 14px; max-width: 58ch; }
+.warn { font-size: 13px; color: #ffd6a0; background: rgba(255,170,60,.09); border: 1px solid rgba(255,170,60,.3); border-radius: 6px; padding: 10px 12px; margin: 4px 0 14px; }
+
+.themes { display: grid; gap: 8px; margin-bottom: 18px; }
+.theme { appearance: none; text-align: left; display: grid; grid-template-columns: 54px 1fr; gap: 12px; align-items: center; background: var(--ink); border: 1px solid var(--line2); border-radius: 8px; padding: 10px; cursor: pointer; }
+.theme:hover { border-color: var(--muted); }
+.theme[aria-pressed="true"] { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.theme .sw { width: 54px; height: 54px; border-radius: 6px; position: relative; overflow: hidden; }
+.theme .sw i { position: absolute; }
+.theme strong { display: block; font-weight: 700; font-stretch: 105%; }
+.theme small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+
+.colors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.color { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: center; background: var(--ink); border: 1px solid var(--line2); border-radius: 6px; padding: 6px; }
+.color input[type=color] { width: 34px; height: 34px; border: 0; padding: 0; background: none; border-radius: 4px; cursor: pointer; }
+.color input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.color input[type=color]::-webkit-color-swatch { border: 1px solid rgba(255,255,255,.2); border-radius: 4px; }
+.color div { min-width: 0; }
+.color b { display: block; font-size: 12px; font-weight: 600; color: var(--muted); line-height: 1.2; }
+.color input[type=text] { padding: 2px 0; border: 0; background: transparent; font-size: 13px; font-variant-numeric: tabular-nums; }
+.color input[type=text]:focus { box-shadow: none; }
+@media (max-width: 480px) { .colors { grid-template-columns: 1fr 1fr; } }
+
+.fonts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.font { appearance: none; background: var(--ink); border: 1px solid var(--line2); border-radius: 6px; padding: 10px; cursor: pointer; text-align: left; }
+.font[aria-pressed="true"] { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.font .s { display: block; font-size: 24px; line-height: 1.1; white-space: nowrap; overflow: hidden; }
+.font small { color: var(--muted); font-size: 12px; }
+
+.logo-drop { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center; background: var(--ink); border: 1px dashed var(--line2); border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+.logo-drop .thumb { width: 96px; height: 60px; display: grid; place-items: center; border-radius: 4px; background: #000 repeating-conic-gradient(#1a1a1a 0 25%, #222 0 50%) 0 0/12px 12px; overflow: hidden; color: var(--muted); font-size: 12px; text-align: center; }
+.logo-drop .thumb img { max-width: 100%; max-height: 100%; }
+.logo-drop .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.logo-drop p { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+
+.list { display: grid; gap: 8px; margin-bottom: 10px; }
+.li { display: grid; grid-template-columns: 1fr 1.3fr auto auto; gap: 6px; align-items: center; }
+.li.sp { grid-template-columns: 22px 1.4fr 1fr; }
+.li .n { color: var(--muted); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+.icon-btn { appearance: none; border: 1px solid var(--line2); background: transparent; border-radius: 6px; width: 34px; height: 36px; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; }
+.icon-btn:hover { color: var(--text); border-color: var(--muted); }
+.star[aria-pressed="true"] { color: #ffc94a; border-color: #ffc94a; }
+.corners { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-width: 280px; margin-bottom: 14px; }
+.corners button { appearance: none; border: 1px solid var(--line2); background: var(--ink); border-radius: 6px; padding: 8px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--muted); }
+.corners button[aria-pressed="true"] { border-color: var(--text); color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.endbar { padding: 24px; display: grid; gap: 12px; }
+.endbar .btn.primary { width: 100%; padding: 14px; font-size: 16px; }
+.top .status { max-width: 320px; text-align: right; }
+.status { font-size: 13.5px; color: var(--muted); min-height: 1.4em; }
+.status.ok { color: #8fe3a8; } .status.err { color: #ffb4a8; }
+.foot { padding: 0 24px 28px; color: var(--muted); font-size: 13px; }
+.only-yt, .only-tw { }
+body.tw .only-yt, body.yt .only-tw { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body class="yt">
+<header class="top">
+  <div class="brand">
+    <h1>Stream Pack Builder</h1>
+    <p>Design your own OBS overlays and scenes, then download them ready to use. Built on the system <b>SHAHZON</b> uses on his own streams.</p>
+  </div>
+  <span class="status" id="status-top" role="status" aria-live="polite"></span>
+  <button class="btn primary" id="dl-top" type="button">Download my pack</button>
+</header>
+
+<main class="app">
+  <div class="stagecol">
+    <div class="mon-head"><span class="tally">Preview</span><span class="res" id="res">1920 × 1080</span><span class="file" id="file">starting.html</span></div>
+    <div class="monitor-wrap"><div class="monitor" id="monitor">
+      <div class="ghost" id="under"></div>
+      <iframe id="pv" title="Scene preview" sandbox="allow-scripts"></iframe>
+      <div class="ghost" id="over"></div>
+    </div></div>
+    <div class="switcher" id="keys" role="group" aria-label="Scenes"></div>
+    <div class="alerts">
+      <span>Test an alert:</span>
+      <button class="btn small" data-alert="sub" id="a-sub">New subscriber</button>
+      <button class="btn small" data-alert="member" id="a-mem">Member</button>
+      <button class="btn small" data-alert="superchat" id="a-sc">Super Chat</button>
+      <button class="btn small" data-alert="tip">Tip</button>
+    </div>
+  </div>
+
+  <div class="formcol" id="form"></div>
+</main>
+<script>
+const PACK_JS = "/* Stream pack engine. You never need to edit this file.\n   Your details live in assets/config.js, live numbers in assets/live.js. */\n(function () {\n  const C = window.PACK || {};\n  const W8 = C.words || {};\n  const PREVIEW = !!window.PACK_PREVIEW;\n  const $ = (s, r = document) => r.querySelector(s);\n  const $$ = (s, r = document) => [...r.querySelectorAll(s)];\n  const hash = new URLSearchParams(location.hash.slice(1));\n  const TWITCH = C.platform === \"twitch\";\n\n  /* ---------- colours come from the CSS variables in pack.css ---------- */\n  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();\n  const col = () => ({ acc: css(\"--acc\"), acc2: css(\"--acc2\"), warm: css(\"--warm\"), bg: css(\"--bg\"), tint: css(\"--tint\"), text: css(\"--text\") });\n  function rgba(hex, a) {\n    hex = (hex || \"#ffffff\").replace(\"#\", \"\");\n    if (hex.length === 3) hex = [...hex].map(c => c + c).join(\"\");\n    const n = parseInt(hex, 16);\n    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;\n  }\n\n  /* ---------- scale the stage to any window ---------- */\n  function fit() {\n    const st = $(\".stage\"); if (!st) return;\n    const W = st.offsetWidth, H = st.offsetHeight;\n    const s = Math.min(innerWidth / W, innerHeight / H);\n    st.style.transform = `translate(${(innerWidth - W * s) / 2}px, ${(innerHeight - H * s) / 2}px) scale(${s})`;\n  }\n  addEventListener(\"resize\", fit);\n\n  const dims = el => { const st = el.closest(\".stage\"); return [st.offsetWidth, st.offsetHeight]; };\n  const seeded = seed => { let s = seed * 9301 + 49297; return () => ((s = (s * 16807) % 2147483647) / 2147483647); };\n\n  function makeNoise(seed) {\n    const p = new Uint8Array(512), rnd = seeded(seed);\n    const perm = [...Array(256).keys()].sort(() => rnd() - .5);\n    for (let i = 0; i < 512; i++) p[i] = perm[i & 255];\n    const g = i => (p[i] / 255) * 2 - 1, fade = t => t * t * (3 - 2 * t);\n    const n2 = (x, y) => {\n      const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;\n      const a = g(p[(xi & 255)] + (yi & 255)), b = g(p[((xi + 1) & 255)] + (yi & 255));\n      const c = g(p[(xi & 255)] + ((yi + 1) & 255)), d = g(p[((xi + 1) & 255)] + ((yi + 1) & 255));\n      const u = fade(xf), v = fade(yf);\n      return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;\n    };\n    return (x, y) => n2(x, y) * .6 + n2(x * 2.1, y * 2.1) * .3 + n2(x * 4.3, y * 4.3) * .1;\n  }\n  function loop(fn) { const t0 = performance.now(); const f = now => { fn((now - t0) / 1000); requestAnimationFrame(f); }; requestAnimationFrame(f); }\n  const still = matchMedia(\"(prefers-reduced-motion: reduce)\").matches;\n\n  /* =====================================================================\n     THEMES. Each one has a static backdrop and an animated \"motion\" layer.\n     mode: \"count\" (Starting Soon, progress 0→1), \"idle\" (BRB), \"end\" (Ending)\n     ===================================================================== */\n  const THEMES = {};\n\n  /* ---- Battle royale: tactical map, shrinking zone, plane route ---- */\n  THEMES.zone = {\n    backdrop(canvas, seed) {\n      const ctx = canvas.getContext(\"2d\"), [W, H] = dims(canvas), c = col();\n      canvas.width = W; canvas.height = H;\n      const bg = ctx.createRadialGradient(W / 2, H / 2, 100, W / 2, H / 2, Math.max(W, H) * .6);\n      bg.addColorStop(0, c.tint); bg.addColorStop(1, c.bg);\n      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);\n      const noise = makeNoise(seed), step = 16, cols = Math.ceil(W / step) + 1, rows = Math.ceil(H / step) + 1;\n      const F = []; for (let j = 0; j < rows; j++) { F[j] = []; for (let i = 0; i < cols; i++) F[j][i] = noise(i * step / 420, j * step / 420); }\n      ctx.lineWidth = 1.4;\n      for (let lvl = -0.6; lvl <= 0.6; lvl += 0.075) {\n        const major = Math.abs((lvl * 1000) % 300) < 40;\n        ctx.strokeStyle = rgba(c.acc, major ? .2 : .08);\n        ctx.beginPath();\n        for (let j = 0; j < rows - 1; j++) for (let i = 0; i < cols - 1; i++) {\n          const a = F[j][i], b = F[j][i + 1], cc = F[j + 1][i + 1], d = F[j + 1][i];\n          const x = i * step, y = j * step, pts = [];\n          const e = (v1, v2, x1, y1, x2, y2) => { const t = (lvl - v1) / (v2 - v1); pts.push([x1 + (x2 - x1) * t, y1 + (y2 - y1) * t]); };\n          if ((a > lvl) !== (b > lvl)) e(a, b, x, y, x + step, y);\n          if ((b > lvl) !== (cc > lvl)) e(b, cc, x + step, y, x + step, y + step);\n          if ((cc > lvl) !== (d > lvl)) e(cc, d, x + step, y + step, x, y + step);\n          if ((d > lvl) !== (a > lvl)) e(d, a, x, y + step, x, y);\n          for (let k = 0; k + 1 < pts.length; k += 2) { ctx.moveTo(...pts[k]); ctx.lineTo(...pts[k + 1]); }\n        }\n        ctx.stroke();\n      }\n      ctx.strokeStyle = rgba(c.text, .07); ctx.lineWidth = 1;\n      const cell = 120;\n      for (let x = 0; x <= W; x += cell) { ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, H); ctx.stroke(); }\n      for (let y = 0; y <= H; y += cell) { ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(W, y + .5); ctx.stroke(); }\n      ctx.fillStyle = rgba(c.text, .28); ctx.font = `600 18px ${css(\"--ui\")}`;\n      for (let i = 0; i < W / cell; i++) ctx.fillText(String.fromCharCode(65 + i), i * cell + 8, 24);\n      for (let j = 1; j < H / cell; j++) ctx.fillText(String(j), 8, j * cell + 24);\n    },\n    motion(canvas, getP, mode) {\n      const ctx = canvas.getContext(\"2d\"), [W, H] = dims(canvas), c = col();\n      canvas.width = W; canvas.height = H;\n      const cx = W / 2, cy = H / 2, big = Math.hypot(W, H) / 2 + 40;\n      const rEnd = mode === \"end\" ? Math.min(W, H) * .65 : Math.min(W, H) * (W > H ? .4 : .45);\n      const pc = document.createElement(\"canvas\"); pc.width = pc.height = 22;\n      const px = pc.getContext(\"2d\"); px.strokeStyle = rgba(c.acc, .16); px.lineWidth = 3;\n      px.beginPath(); px.moveTo(0, 22); px.lineTo(22, 0); px.stroke();\n      const hatch = ctx.createPattern(pc, \"repeat\");\n      loop(t => {\n        const p = Math.max(0, Math.min(1, getP()));\n        const r = big + (rEnd - big) * (1 - Math.pow(1 - p, 2));\n        ctx.clearRect(0, 0, W, H);\n        ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(cx, cy, r, 0, Math.PI * 2, true);\n        ctx.fillStyle = rgba(c.bg, .35); ctx.fill(); ctx.fillStyle = hatch; ctx.fill(); ctx.restore();\n        ctx.lineWidth = 3; ctx.strokeStyle = rgba(c.text, .8);\n        ctx.beginPath(); ctx.arc(cx, cy, rEnd, 0, Math.PI * 2); ctx.stroke();\n        ctx.lineWidth = 6; ctx.strokeStyle = c.acc; ctx.shadowColor = c.acc; ctx.shadowBlur = 24;\n        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;\n        if (mode === \"count\") {\n          const ax = -100, ay = H * .9, bx = W + 100, by = H * .08;\n          ctx.setLineDash([14, 12]); ctx.lineDashOffset = -t * 30;\n          ctx.lineWidth = 2; ctx.strokeStyle = rgba(c.text, .35);\n          ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke(); ctx.setLineDash([]);\n          const k = (t / 40) % 1, x = ax + (bx - ax) * k, y = ay + (by - ay) * k;\n          ctx.save(); ctx.translate(x, y); ctx.rotate(Math.atan2(by - ay, bx - ax)); ctx.fillStyle = c.text;\n          ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(-12, -12); ctx.lineTo(-6, 0); ctx.lineTo(-12, 12); ctx.closePath(); ctx.fill();\n          ctx.restore();\n        }\n      });\n    }\n  };\n\n  /* ---- Tactical shooter: radar sweep, round timer ring ---- */\n  THEMES.radar = {\n    backdrop(canvas, seed) {\n      const ctx = canvas.getContext(\"2d\"), [W, H] = dims(canvas), c = col(), rnd = seeded(seed);\n      canvas.width = W; canvas.height = H;\n      const bg = ctx.createRadialGradient(W / 2, H / 2, 80, W / 2, H / 2, Math.max(W, H) * .65);\n      bg.addColorStop(0, c.tint); bg.addColorStop(1, c.bg);\n      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);\n      for (let x = 0; x <= W; x += 40) { ctx.strokeStyle = rgba(c.text, x % 200 ? .035 : .08); ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, H); ctx.stroke(); }\n      for (let y = 0; y <= H; y += 40) { ctx.strokeStyle = rgba(c.text, y % 200 ? .035 : .08); ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(W, y + .5); ctx.stroke(); }\n      // diagonal hazard stripes in two corners\n      ctx.save(); ctx.strokeStyle = rgba(c.acc, .12); ctx.lineWidth = 10;\n      for (let i = -6; i < 6; i++) { ctx.beginPath(); ctx.moveTo(i * 28, 0); ctx.lineTo(i * 28 + 160, 160); ctx.stroke(); }\n      for (let i = -6; i < 6; i++) { ctx.beginPath(); ctx.moveTo(W - i * 28, H); ctx.lineTo(W - i * 28 - 160, H - 160); ctx.stroke(); }\n      ctx.restore();\n      // crosshair marks\n      ctx.strokeStyle = rgba(c.text, .18); ctx.lineWidth = 2;\n      for (let i = 0; i < 26; i++) {\n        const x = Math.round(rnd() * W / 40) * 40, y = Math.round(rnd() * H / 40) * 40;\n        ctx.beginPath(); ctx.moveTo(x - 8, y); ctx.lineTo(x + 8, y); ctx.moveTo(x, y - 8); ctx.lineTo(x, y + 8); ctx.stroke();\n      }\n      // site markers\n      ctx.font = `700 26px ${css(\"--ui\")}`; ctx.textAlign = \"center\"; ctx.textBaseline = \"middle\";\n      [\"A\", \"B\", \"C\"].forEach((s, i) => {\n        const x = W * (.18 + .32 * i + rnd() * .08), y = H * (.2 + rnd() * .6);\n        ctx.strokeStyle = rgba(c.acc, .35); ctx.lineWidth = 3;\n        ctx.beginPath(); ctx.arc(x, y, 30, 0, Math.PI * 2); ctx.stroke();\n        ctx.fillStyle = rgba(c.acc, .55); ctx.fillText(s, x, y + 1);\n      });\n      ctx.textAlign = \"start\"; ctx.textBaseline = \"alphabetic\";\n    },\n    motion(canvas, getP, mode) {\n      const ctx = canvas.getContext(\"2d\"), [W, H] = dims(canvas), c = col(), rnd = seeded(5);\n      canvas.width = W; canvas.height = H;\n      const cx = W / 2, cy = H / 2, R = Math.min(W, H) * .44;\n      const blips = Array.from({ length: 14 }, () => ({ a: rnd() * Math.PI * 2, r: R * (.2 + rnd() * .75) }));\n      const speed = mode === \"idle\" ? .5 : 1.1;\n      loop(t => {\n        const p = mode === \"end\" ? 1 : Math.max(0, Math.min(1, getP()));\n        ctx.clearRect(0, 0, W, H);\n        ctx.lineWidth = 2;\n        for (let k = 1; k <= 4; k++) { ctx.strokeStyle = rgba(c.acc, .08 + k * .02); ctx.beginPath(); ctx.arc(cx, cy, R * k / 4, 0, Math.PI * 2); ctx.stroke(); }\n        ctx.strokeStyle = rgba(c.acc, .1);\n        ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();\n        const sw = (t * speed) % (Math.PI * 2);\n        for (let k = 0; k < 24; k++) {\n          ctx.fillStyle = rgba(c.acc, .16 * (1 - k / 24));\n          ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, sw - (k + 1) * .03, sw - k * .03); ctx.closePath(); ctx.fill();\n        }\n        ctx.strokeStyle = rgba(c.acc, .7); ctx.lineWidth = 3;\n        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(sw) * R, cy + Math.sin(sw) * R); ctx.stroke();\n        blips.forEach(b => {\n          const since = ((sw - b.a) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);\n          const a = Math.max(0, 1 - since / 2.2);\n          if (a <= 0) return;\n          ctx.fillStyle = rgba(c.warm, a); ctx.beginPath(); ctx.arc(cx + Math.cos(b.a) * b.r, cy + Math.sin(b.a) * b.r, 7, 0, Math.PI * 2); ctx.fill();\n        });\n        if (mode !== \"idle\") {\n          const RR = R + 38, n = 60;\n          for (let i = 0; i < n; i++) {\n            const a0 = -Math.PI / 2 + i / n * Math.PI * 2, on = i / n < p;\n            ctx.strokeStyle = on ? c.acc : rgba(c.text, .15); ctx.lineWidth = on ? 10 : 6;\n            ctx.beginPath(); ctx.arc(cx, cy, RR, a0 + .015, a0 + Math.PI * 2 / n - .015); ctx.stroke();\n          }\n        }\n      });\n    }\n  };\n\n  /* ---- Sandbox / blocks: pixel terrain, floating blocks, chunk loader ---- */\n  THEMES.pixel = {\n    backdrop(canvas, seed) {\n      const ctx = canvas.getContext(\"2d\"), [W, H] = dims(canvas), c = col(), rnd = seeded(seed), noise = makeNoise(seed);\n      canvas.width = W; canvas.height = H;\n      const sky = ctx.createLinearGradient(0, 0, 0, H);\n      sky.addColorStop(0, c.bg); sky.addColorStop(1, c.tint);\n      ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);\n      const B = 40;\n      for (let i = 0; i < 70; i++) { ctx.fillStyle = rgba(c.text, .12 + rnd() * .25); const s = rnd() < .2 ? 8 : 4; ctx.fillRect(Math.floor(rnd() * W / 8) * 8, Math.floor(rnd() * H * .5 / 8) * 8, s, s); }\n      const layer = (base, amp, scale, fill, top, off) => {\n        for (let x = 0; x < W; x += B) {\n          const h = Math.round((base + noise(x / scale + off, off) * amp) / B) * B;\n          const y0 = H - h;\n          ctx.fillStyle = fill; ctx.fillRect(x, y0, B, h);\n          ctx.fillStyle = top; ctx.fillRect(x, y0, B, B / 4);\n          ctx.fillStyle = rgba(c.bg, .18);\n          for (let y = y0 + B; y < H; y += B) if (rnd() < .25) ctx.fillRect(x + 8, y + 8, B / 4, B / 4);\n        }\n      };\n      layer(H * .34, H * .22, 900, rgba(c.tint, .9), rgba(c.acc2, .35), 3);\n      layer(H * .2, H * .14, 600, rgba(c.bg, .92), rgba(c.acc, .75), 11);\n      ctx.strokeStyle = rgba(c.bg, .35); ctx.lineWidth = 2;\n      for (let x = 0; x <= W; x += B) { ctx.beginPath(); ctx.moveTo(x + .5, H * .45); ctx.lineTo(x + .5, H); ctx.stroke(); }\n    },\n    motion(canvas, getP, mode) {\n      const ctx = canvas.getContext(\"2d\"), [W, H] = dims(canvas), c = col(), rnd = seeded(9);\n      canvas.width = W; canvas.height = H;\n      const blocks = Array.from({ length: 26 }, () => ({ x: rnd() * W, y: rnd() * H, s: 8 * (2 + Math.floor(rnd() * 4)), v: 12 + rnd() * 30, k: rnd() < .5 }));\n      const segs = 32, bx = W * .1, bw = W * .8, by = 54, sh = 18;\n      loop(t => {\n        ctx.clearRect(0, 0, W, H);\n        blocks.forEach(b => {\n          const y = ((b.y - t * b.v) % (H + 80) + H + 80) % (H + 80) - 40;\n          const x = Math.round(b.x / 8) * 8, yy = Math.round(y / 8) * 8;\n          ctx.fillStyle = rgba(b.k ? c.acc : c.acc2, .35); ctx.fillRect(x, yy, b.s, b.s);\n          ctx.fillStyle = rgba(c.text, .25); ctx.fillRect(x, yy, b.s, 4);\n        });\n        if (mode === \"count\") {\n          const p = Math.max(0, Math.min(1, getP())), gw = bw / segs;\n          for (let i = 0; i < segs; i++) {\n            ctx.fillStyle = (i + 1) / segs <= p + 1e-6 ? c.acc : rgba(c.text, .14);\n            ctx.fillRect(Math.round(bx + i * gw + 3), by, Math.round(gw - 6), sh);\n          }\n        }\n      });\n    }\n  };\n\n  /* ---- Neon horizon: synth grid road, sun that rises with the countdown ---- */\n  THEMES.neon = {\n    backdrop(canvas, seed, animated) {\n      const ctx = canvas.getContext(\"2d\"), [W, H] = dims(canvas), c = col(), rnd = seeded(seed);\n      canvas.width = W; canvas.height = H;\n      const hz = H * .66;\n      const sky = ctx.createLinearGradient(0, 0, 0, hz);\n      sky.addColorStop(0, c.bg); sky.addColorStop(1, c.tint);\n      ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);\n      for (let i = 0; i < 90; i++) { ctx.fillStyle = rgba(c.text, .1 + rnd() * .5); ctx.fillRect(rnd() * W, rnd() * hz * .8, 2, 2); }\n      if (!animated) { THEMES.neon.drawSun(ctx, W, H, hz, .45, c); THEMES.neon.drawFloor(ctx, W, H, hz, 0, c); }\n    },\n    drawSun(ctx, W, H, hz, k, c) {\n      const R = Math.min(W, H) * .26, cy = hz - R * (k * 2 - .6);\n      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, hz); ctx.clip();\n      const g = ctx.createLinearGradient(0, cy - R, 0, cy + R);\n      g.addColorStop(0, c.warm); g.addColorStop(1, c.acc);\n      ctx.shadowColor = c.acc; ctx.shadowBlur = 60;\n      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(W / 2, cy, R, 0, Math.PI * 2); ctx.fill();\n      ctx.shadowBlur = 0; ctx.globalCompositeOperation = \"destination-out\";\n      for (let i = 0; i < 7; i++) { const y = cy + R * (.1 + i * .13), h = 3 + i * 2.2; ctx.fillRect(W / 2 - R, y, R * 2, h); }\n      ctx.restore();\n    },\n    drawFloor(ctx, W, H, hz, off, c) {\n      const fg = ctx.createLinearGradient(0, hz, 0, H);\n      fg.addColorStop(0, c.tint); fg.addColorStop(1, c.bg);\n      ctx.fillStyle = fg; ctx.fillRect(0, hz, W, H - hz);\n      ctx.strokeStyle = rgba(c.acc2, .5); ctx.lineWidth = 2;\n      const vx = W / 2;\n      for (let i = -24; i <= 24; i++) { ctx.beginPath(); ctx.moveTo(vx + i * 12, hz); ctx.lineTo(vx + i * (W / 7), H); ctx.stroke(); }\n      for (let i = 0; i < 14; i++) {\n        const z = (i + off) / 14, y = hz + (H - hz) * z * z;\n        ctx.strokeStyle = rgba(c.acc2, .15 + .55 * z); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();\n      }\n      ctx.strokeStyle = c.acc; ctx.lineWidth = 3; ctx.shadowColor = c.acc; ctx.shadowBlur = 18;\n      ctx.beginPath(); ctx.moveTo(0, hz); ctx.lineTo(W, hz); ctx.stroke(); ctx.shadowBlur = 0;\n    },\n    motion(canvas, getP, mode) {\n      const ctx = canvas.getContext(\"2d\"), [W, H] = dims(canvas), c = col(), hz = H * .66;\n      canvas.width = W; canvas.height = H;\n      loop(t => {\n        ctx.clearRect(0, 0, W, H);\n        const p = Math.max(0, Math.min(1, getP()));\n        const k = mode === \"count\" ? .05 + p * .7 : mode === \"end\" ? .2 : .45 + Math.sin(t / 3) * .03;\n        THEMES.neon.drawSun(ctx, W, H, hz, k, c);\n        THEMES.neon.drawFloor(ctx, W, H, hz, (t * (mode === \"idle\" ? .25 : .6)) % 1, c);\n      });\n    }\n  };\n\n  const theme = THEMES[C.theme] || THEMES.zone;\n  function backdrop(canvas, seed, animated) { theme.backdrop(canvas, seed || 7, animated); }\n  function motion(canvas, getP, mode) {\n    if (still) { const [W, H] = dims(canvas); canvas.width = W; canvas.height = H; return; }\n    theme.motion(canvas, getP, mode);\n  }\n\n  /* cut see-through windows (for cam / game feed placed UNDER the source) */\n  function punch(canvas, rects) {\n    const ctx = canvas.getContext(\"2d\");\n    ctx.save(); ctx.globalCompositeOperation = \"destination-out\"; ctx.fillStyle = \"#000\";\n    rects.forEach(([x, y, w, h]) => ctx.fillRect(x, y, w, h));\n    ctx.restore();\n  }\n\n  /* ---------- rotating text ---------- */\n  function rotator(el, items, ms = 5000) {\n    if (!el || !items.length) return;\n    let i = 0;\n    const show = () => { el.innerHTML = items[i % items.length]; };\n    show();\n    if (items.length < 2) return;\n    setInterval(() => {\n      el.classList.add(\"out\");\n      setTimeout(() => { i++; show(); el.classList.remove(\"out\"); }, 450);\n    }, ms);\n  }\n  const esc = t => String(t ?? \"\").replace(/[&<>\"]/g, c => ({ \"&\": \"&amp;\", \"<\": \"&lt;\", \">\": \"&gt;\", '\"': \"&quot;\" }[c]));\n  const socials = () => (C.socials || []).filter(s => s && String(s.value || \"\").trim());\n  const socialItems = () => socials().map(s => `<b>${esc(s.label)}<\/b>${esc(s.value)}`);\n  const tickerItems = () => socials().map(s =>\n    `<span class=\"tg${s.highlight ? \" warm\" : \"\"}\">${esc(s.label)}<\/span><span class=\"tv\">${esc(s.value)}<\/span>`);\n  const pad = n => String(n).padStart(2, \"0\");\n  const fmt = sec => `${pad(Math.floor(sec / 60))}<span class=\"colon\">:<\/span>${pad(Math.floor(sec % 60))}`;\n\n  /* ---------- storage (guarded; OBS may block it) ---------- */\n  const store = {\n    get(k, d) { try { const v = localStorage.getItem(\"pack:\" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },\n    set(k, v) { try { localStorage.setItem(\"pack:\" + k, JSON.stringify(v)); } catch {} }\n  };\n\n  /* ---------- logo: your image, or your name as a styled wordmark ---------- */\n  function logos() {\n    $$(\"[data-logo]\").forEach(img => {\n      if (C.logo) { img.src = C.logo; img.alt = C.name || \"\"; return; }\n      const w = parseFloat(getComputedStyle(img).width) || 600;\n      const d = document.createElement(\"div\");\n      d.className = img.className + \" wordmark\"; d.textContent = C.name || \"YOUR NAME\";\n      d.style.maxWidth = w + \"px\";\n      let size = Math.round(w / Math.max(3.2, (C.name || \"x\").length) * 1.6);\n      d.style.fontSize = size + \"px\";\n      img.replaceWith(d);\n      // shrink until the name fits the space the logo would have used\n      const shrink = () => { let n = 0; d.style.fontSize = size + \"px\";\n        while (d.scrollWidth > w + 1 && n++ < 60) { size *= .95; d.style.fontSize = size + \"px\"; } };\n      shrink(); document.fonts.ready.then(shrink);\n    });\n  }\n\n  /* ---------- alerts ---------- */\n  const ALERT_TYPES = TWITCH ? {\n    sub:       { badge: \"NEW<br>FOLLOW\", what: \"just followed\" },\n    member:    { badge: esc(W8.memberBadge || \"SQUAD\"), what: \"just subscribed\" },\n    superchat: { badge: \"BITS\", what: \"cheered\" },\n    tip:       { badge: \"TIP\", what: \"sent a tip\" },\n    raid:      { badge: \"RAID\", what: \"is raiding\" }\n  } : {\n    sub:       { badge: \"NEW<br>SUB\", what: \"just subscribed\" },\n    member:    { badge: esc(W8.memberBadge || \"SQUAD\"), what: \"joined as a member\" },\n    superchat: { badge: \"SUPER<br>CHAT\", what: \"sent a Super Chat\" },\n    tip:       { badge: \"TIP\", what: \"sent a tip\" },\n    raid:      { badge: \"RAID\", what: \"is raiding\" }\n  };\n  function alertAPI(el) {\n    const queue = []; let busy = false;\n    function next() {\n      if (busy || !queue.length) return;\n      busy = true;\n      const a = queue.shift(), def = ALERT_TYPES[a.type] || ALERT_TYPES.sub;\n      el.innerHTML = `<div class=\"badge\">${def.badge}<\/div>\n        <div><div class=\"who\"><\/div><div class=\"what\"><\/div>${a.msg ? '<div class=\"msg\"><\/div>' : \"\"}<\/div>`;\n      el.querySelector(\".who\").textContent = a.name || \"Someone\";\n      el.querySelector(\".what\").textContent = a.amount ? `${def.what}: ${a.amount}` : def.what;\n      if (a.msg) el.querySelector(\".msg\").textContent = a.msg;\n      el.classList.remove(\"show\"); void el.offsetWidth; el.classList.add(\"show\");\n      setTimeout(() => { busy = false; next(); }, 5400);\n    }\n    const fire = a => { queue.push(a); next(); };\n    window.packAlert = fire;\n    addEventListener(\"message\", e => { if (e.data && e.data.pack === \"alert\") fire(e.data); });\n    return fire;\n  }\n\n  /* ---------- YouTube: find the channel's current live video ---------- */\n  let lastSearch = 0;\n  async function findLive() {\n    const key = C.youtubeApiKey, ch = C.channelId;\n    if (!key || !ch) return null;\n    const api = path => fetch(`https://www.googleapis.com/youtube/v3/${path}&key=${key}`).then(r => r.json());\n    try {\n      const pl = await api(`playlistItems?part=contentDetails&playlistId=UU${ch.slice(2)}&maxResults=5`);\n      const ids = (pl.items || []).map(i => i.contentDetails.videoId).join(\",\");\n      if (ids) {\n        const v = await api(`videos?part=liveStreamingDetails&id=${ids}`);\n        const live = (v.items || []).find(i => i.liveStreamingDetails && i.liveStreamingDetails.actualStartTime && !i.liveStreamingDetails.actualEndTime);\n        if (live) return live.id;\n      }\n      if (Date.now() - lastSearch > 15 * 60e3) {\n        lastSearch = Date.now();\n        const d = await api(`search?part=id&channelId=${ch}&eventType=live&type=video&maxResults=1`);\n        return d.items?.[0]?.id?.videoId || null;\n      }\n    } catch {}\n    return null;\n  }\n\n  /* ---------- exact subscriber counter (YouTube rounds, you don't) ---------- */\n  const subCounter = (() => {\n    let mem = { api: null, apiIds: [], manual: null, manualIds: [] };\n    const listeners = [];\n    const read = () => { const v = store.get(\"subs2\", null); if (v && Array.isArray(v.apiIds)) mem = v; return mem; };\n    const write = v => { mem = v; store.set(\"subs2\", v); };\n    let shown = null;\n    const value = v => {\n      const fromApi = v.api == null ? null : v.api + v.apiIds.length;\n      if (v.manual == null) return fromApi;\n      const exact = v.manual + v.manualIds.length;\n      return v.api != null && v.api > exact ? v.api : exact;\n    };\n    const render = () => { const n = value(read()); if (n != null && n !== shown) { shown = n; listeners.forEach(f => f(n)); } };\n    setInterval(render, 2000);\n    return {\n      onChange(f) { listeners.push(f); render(); },\n      setBase(n) {\n        const v = read(); if (n === v.api) return;\n        const diff = v.api == null ? 0 : n - v.api;\n        write({ ...v, api: n, apiIds: v.api == null ? [] : diff > 0 ? v.apiIds.slice(Math.min(diff, v.apiIds.length)) : v.apiIds });\n        render();\n      },\n      setManual(n) { const v = read(); if (n === v.manual) return; write({ ...v, manual: n, manualIds: [] }); render(); },\n      add(id) {\n        const v = read(); if (v.apiIds.includes(id) || v.manualIds.includes(id)) return;\n        write({ ...v, apiIds: [...v.apiIds, id].slice(-500), manualIds: [...v.manualIds, id].slice(-500) });\n        render();\n      }\n    };\n  })();\n\n  const shared = {\n    mine: {},\n    claim(key, everyMs) {\n      const now = Date.now(), last = Math.max(store.get(\"t:\" + key, 0), this.mine[key] || 0);\n      if (now - last < everyMs - 500) return false;\n      store.set(\"t:\" + key, now); this.mine[key] = now; return true;\n    }\n  };\n  const nf = n => Number(n).toLocaleString(C.locale || \"en-IN\");\n\n  function ytStats() {\n    const vEls = $$(\"[data-yt-viewers]\"), sEls = $$(\"[data-yt-subs]\"), lEls = $$(\"[data-yt-likes]\");\n    if (PREVIEW) {\n      if (!C.counters || TWITCH) { $$(\"[data-yt]\").forEach(e => e.hidden = true); return; }\n      vEls.forEach(e => e.textContent = nf(1248)); lEls.forEach(e => e.textContent = nf(386));\n      sEls.forEach(e => e.textContent = nf(C.previewSubs || 12430)); return;\n    }\n    const key = C.youtubeApiKey, ch = C.channelId;\n    if (TWITCH || !key || !ch) { $$(\"[data-yt]\").forEach(e => e.hidden = true); return; }\n    const api = path => fetch(`https://www.googleapis.com/youtube/v3/${path}&key=${key}`).then(r => r.json());\n    const SUBS_MS = 60e3, LIVE_MS = 20e3;\n    subCounter.onChange(n => sEls.forEach(e => e.textContent = nf(n)));\n    async function subs() {\n      if (!shared.claim(\"subs\", SUBS_MS)) return;\n      try { const d = await api(`channels?part=statistics&id=${ch}`);\n        const n = d.items?.[0]?.statistics?.subscriberCount; if (n != null) subCounter.setBase(Number(n)); } catch {}\n    }\n    const showLive = s => {\n      if (!s || Date.now() - s.at > 3 * LIVE_MS) return;\n      if (s.viewers != null) vEls.forEach(e => e.textContent = nf(s.viewers));\n      if (s.likes != null) lEls.forEach(e => e.textContent = nf(s.likes));\n    };\n    const streaming = () => new Promise(res => {\n      const o = window.obsstudio;\n      if (!o || !o.getStatus) return res(true);\n      const t = setTimeout(() => res(true), 1500);\n      o.getStatus(st => { clearTimeout(t); res(!!(st && st.streaming)); });\n    });\n    addEventListener(\"obsStreamingStopped\", () => { store.set(\"vid\", null); store.set(\"live\", null); [...vEls, ...lEls].forEach(e => e.textContent = \"0\"); });\n    let localLive = null;\n    async function viewers() {\n      if (!shared.claim(\"live\", LIVE_MS)) return;\n      try {\n        let vid = store.get(\"vid\", null);\n        if (!vid) { if (!(await streaming())) return; vid = await findLive(); if (!vid) return; store.set(\"vid\", vid); }\n        const d = await api(`videos?part=liveStreamingDetails,statistics&id=${vid}`);\n        const it = d.items?.[0], n = it?.liveStreamingDetails?.concurrentViewers;\n        if (n == null) { store.set(\"vid\", null); return; }\n        const s = { at: Date.now(), viewers: Number(n), likes: it?.statistics?.likeCount != null ? Number(it.statistics.likeCount) : null };\n        store.set(\"live\", s); localLive = s;\n      } catch {}\n    }\n    subs(); viewers();\n    setInterval(subs, 5e3); setInterval(viewers, 5e3);\n    setInterval(() => showLive(store.get(\"live\", null) || localLive), 2000);\n  }\n\n  const money = (n, cur) => (cur ?? \"\") + Number(n).toLocaleString(C.locale || \"en-IN\");\n  function goalCard(el, g) {\n    if (!el) return;\n    if (!g || !g.target) { el.hidden = true; return; }\n    const pct = Math.min(100, Math.round(g.current / g.target * 100));\n    el.hidden = false;\n    el.innerHTML = `<div class=\"gc-top\"><span class=\"tg warm\">GOAL<\/span><span class=\"gc-label\">${esc(g.label)}<\/span><span class=\"gc-pct\">${pct}%<\/span><\/div>\n      <div class=\"gc-amt\">${money(g.current, g.currency)} <span>of ${money(g.target, g.currency)}<\/span><\/div>\n      <div class=\"gc-bar\"><i><\/i><\/div>`;\n    setTimeout(() => el.querySelector(\".gc-bar i\").style.width = pct + \"%\", 300);\n  }\n\n  /* ---------- fill everything marked with data-* ---------- */\n  function fillText() {\n    const set = (sel, v) => $$(sel).forEach(e => e.textContent = v ?? \"\");\n    const hideIfEmpty = (sel, v) => $$(sel).forEach(e => e.hidden = !String(v || \"\").trim());\n    set(\"[data-name]\", C.name); set(\"[data-handle]\", C.handle); set(\"[data-topic]\", C.topic);\n    set(\"[data-gameid]\", C.gameId); set(\"[data-gameid-label]\", C.gameIdLabel);\n    set(\"[data-tip]\", C.tip && C.tip.value); set(\"[data-tip-label]\", C.tip && C.tip.label);\n    set(\"[data-social]\", C.social && C.social.value); set(\"[data-social-label]\", C.social && C.social.label);\n    set(\"[data-rank-label]\", C.rankLabel || \"RANK\");\n    set(\"[data-subscribe]\", W8.subscribe || (TWITCH ? \"FOLLOW\" : \"SUBSCRIBE\"));\n    hideIfEmpty(\"[data-tip-box]\", C.tip && C.tip.value);\n    hideIfEmpty(\"[data-social-box]\", C.social && C.social.value);\n    hideIfEmpty(\"[data-topic-box]\", C.topic);\n    $$(\"[data-word]\").forEach(e => { const v = W8[e.dataset.word]; if (v != null) e.textContent = v; });\n    document.body.classList.add(TWITCH ? \"twitch\" : \"youtube\");\n    if (C.name) document.title = C.name + \" \" + document.title;\n  }\n\n  function common() {\n    liveData();\n    ytStats();\n    $$(\"[data-ticker]\").forEach(e => rotator(e, tickerItems(), 6000));\n    const a = $(\"#alert\");\n    const fire = a ? alertAPI(a) : null;\n    if (!PREVIEW && (fire || (C.youtubeApiKey && $(\"[data-yt-subs]\")))) streamlabs(fire || (() => {}));\n  }\n\n  /* ---------- live.js: re-read every 5 s so edits show up without a refresh ---------- */\n  let lastGoal = \"\", spList = [], spIdx = 0, spTimer = null;\n  function renderLive(L) {\n    L = L || {};\n    const rank = String(L.rank ?? \"\").trim();\n    $$(\"[data-rank-box]\").forEach(b => b.hidden = !rank);\n    $$(\"[data-rank]\").forEach(e => e.textContent = rank);\n    const subs = parseInt(String(L.subscribers ?? \"\").replace(/[^0-9]/g, \"\"), 10);\n    if (!PREVIEW) subCounter.setManual(Number.isFinite(subs) ? subs : null);\n    const gj = JSON.stringify(L.goal || null);\n    if (gj !== lastGoal) { lastGoal = gj; $$(\"[data-goal]\").forEach(el => goalCard(el, L.goal)); }\n    const list = (L.supporters || []).filter(x => x && String(x.name || \"\").trim());\n    if (JSON.stringify(list) !== JSON.stringify(spList)) {\n      spList = list; spIdx = 0;\n      $$(\"[data-supporters-box]\").forEach(b => b.hidden = !list.length);\n      showSupporter(false);\n      clearInterval(spTimer);\n      if (list.length > 1) spTimer = setInterval(() => showSupporter(true), 4500);\n    }\n  }\n  function showSupporter(animate) {\n    if (!spList.length) return;\n    const i = spIdx % spList.length, x = spList[i];\n    const html = `<span class=\"sp-pos\">#${i + 1}<\/span><span class=\"sp-name\">${esc(x.name)}<\/span><span class=\"sp-amt\">${esc(x.amount)}<\/span>`;\n    $$(\"[data-supporters]\").forEach(el => {\n      if (!animate) { el.innerHTML = html; return; }\n      el.classList.add(\"out\");\n      setTimeout(() => { el.innerHTML = html; el.classList.remove(\"out\"); }, 400);\n    });\n    spIdx++;\n  }\n  function liveData() {\n    if (PREVIEW) return renderLive(window.PACK_LIVE);\n    const load = () => {\n      const old = document.getElementById(\"live-js\"); if (old) old.remove();\n      const s = document.createElement(\"script\");\n      s.id = \"live-js\"; s.src = \"assets/live.js?t=\" + Date.now();\n      s.onload = () => renderLive(window.PACK_LIVE);\n      document.head.appendChild(s);\n    };\n    load(); setInterval(load, 5000);\n  }\n\n  /* ---------- Streamlabs real-time events → your alert design ---------- */\n  function streamlabs(fire) {\n    const token = C.streamlabsSocketToken;\n    if (!token) return;\n    const go = () => {\n      const socket = io(`https://sockets.streamlabs.com?token=${token}`, { transports: [\"websocket\"] });\n      const seen = new Set();\n      socket.on(\"event\", ev => {\n        if (!ev || !ev.message) return;\n        const list = Array.isArray(ev.message) ? ev.message : [ev.message];\n        list.forEach(m => {\n          const id = m._id || m.id || m.event_id;\n          if (id) { if (seen.has(id)) return; seen.add(id); }\n          const name = m.name || m.from || m.display_name || \"Someone\";\n          const yt = ev.for === \"youtube_account\", tw = ev.for === \"twitch_account\";\n          if (ev.type === \"follow\" && (yt || tw || !ev.for)) {\n            fire({ type: \"sub\", name });\n            if (yt) subCounter.add(String(id || name + \":\" + Math.floor(Date.now() / 60e3)));\n          }\n          else if (ev.type === \"subscription\" || ev.type === \"resub\")\n            fire({ type: \"member\", name, msg: m.months > 1 ? `${m.months} months` : \"\" });\n          else if (ev.type === \"superchat\")\n            fire({ type: \"superchat\", name, amount: m.displayString || m.formatted_amount || \"\", msg: m.comment || m.message || \"\" });\n          else if (ev.type === \"bits\")\n            fire({ type: \"superchat\", name, amount: (m.amount || \"\") + \" bits\", msg: m.message || \"\" });\n          else if (ev.type === \"raid\")\n            fire({ type: \"raid\", name, msg: m.raiders ? `${m.raiders} raiders` : \"\" });\n          else if (ev.type === \"donation\")\n            fire({ type: \"tip\", name, amount: m.formatted_amount || (m.amount ? (C.currency || \"\") + m.amount : \"\"), msg: m.message || \"\" });\n        });\n      });\n    };\n    if (window.io) return go();\n    const s = document.createElement(\"script\");\n    s.src = \"https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.5.0/socket.io.js\";\n    s.onload = go;\n    document.head.appendChild(s);\n  }\n\n  window.Pack = { C, W8, common, findLive, esc, $, hash, fit, backdrop, motion, punch, rotator, socialItems, fmt, pad, store, alertAPI };\n  addEventListener(\"DOMContentLoaded\", () => { fillText(); logos(); fit(); });\n})();\n";
+const PACK_CSS = "* { box-sizing: border-box; margin: 0; padding: 0; }\nhtml, body { width: 100%; height: 100%; overflow: hidden; }\nbody { background: transparent; color: var(--text); font-family: var(--ui); }\nbody.solid { background: var(--bg); }\n.disp { font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); }\n\n/* Every scene is authored at 1920x1080 (or 1080x1920) and scaled to fit */\n.stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; }\n.stage.v { width: 1080px; height: 1920px; }\n.layer { position: absolute; inset: 0; }\ncanvas.layer { width: 100%; height: 100%; }\n\n.logo { display: block; height: auto; filter: drop-shadow(0 18px 40px rgba(0,0,0,.6)); }\n/* the max-width/width pair lets JS measure overflow */\n.wordmark { width: max-content; overflow: visible; font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); line-height: .95; text-align: center;\n  white-space: nowrap; padding: 0 .1em .08em; letter-spacing: .01em;\n  background: linear-gradient(180deg, var(--acc) 15%, var(--acc2) 100%); -webkit-background-clip: text; background-clip: text; color: transparent;\n  filter: drop-shadow(0 0 0 #000) drop-shadow(5px 5px 0 #000) drop-shadow(0 0 30px rgb(var(--acc-rgb) / .25)); }\n.hdr .wordmark { text-align: left; filter: drop-shadow(3px 3px 0 #000); }\n\n/* ---------- full-screen scenes ---------- */\n.vignette { background: radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(0,0,0,.85) 100%); pointer-events: none; }\n.center-stack { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; text-align: center; }\n.headline { font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 150px; line-height: 1; padding: 0 .12em .1em;\n  background: linear-gradient(180deg, var(--acc) 0%, var(--acc2) 100%); -webkit-background-clip: text; background-clip: text; color: transparent;\n  filter: drop-shadow(6px 6px 0 #000); }\n.sub { font-weight: 600; font-size: 34px; color: var(--text); margin-top: 18px; }\n.kicker { font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 64px; color: var(--text); margin-bottom: -6px; }\n.clock { font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 230px; line-height: .85; color: var(--text);\n  font-variant-numeric: tabular-nums; text-shadow: 0 0 60px rgb(var(--acc-rgb) / .35); }\n.clock .colon { color: var(--acc); }\n.done .clock { color: var(--acc); }\n.zone-note { margin-top: 20px; font-size: 26px; font-weight: 600; color: var(--dim); }\n\n.rail { position: absolute; left: 80px; right: 80px; bottom: 60px; display: flex; align-items: center; justify-content: space-between; gap: 40px; font-size: 28px; font-weight: 600; }\n.rail .rot { color: var(--text); min-height: 1.2em; }\n.rail .rot b { color: var(--acc); font-weight: 700; margin-right: 12px; }\n.rail .coords { font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 30px; color: var(--dim); }\n\n.fade-swap { transition: opacity .45s ease, transform .45s ease; }\n.fade-swap.out { opacity: 0; transform: translateY(10px); }\n\n.loadbar { position: relative; width: 760px; height: 22px; border-radius: 99px; background: rgb(var(--text-rgb) / .1); margin-top: 40px; overflow: hidden;\n  box-shadow: 0 0 0 3px #000, 0 0 0 5px rgb(var(--acc-rgb) / .5); }\n.loadbar i { position: absolute; inset: 0; width: 0; background: linear-gradient(90deg, var(--acc2), var(--acc)); border-radius: 99px; animation: fillup 7s linear infinite; }\n@keyframes fillup { 0% { width: 8%; } 85% { width: 100%; } 100% { width: 100%; } }\n.away { margin-top: 22px; font-size: 26px; font-weight: 600; color: var(--dim); font-variant-numeric: tabular-nums; }\n.away b { color: var(--acc); }\n\n.next { margin-top: 44px; display: flex; gap: 18px; align-items: stretch; }\n.next > div { background: rgba(0,0,0,.7); border: 3px solid rgb(var(--acc-rgb) / .45); border-radius: 16px; padding: 18px 30px; text-align: left; }\n.next small { display: block; font-size: 20px; font-weight: 600; color: var(--dim); margin-bottom: 4px; }\n.next strong { font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 44px; color: var(--text); line-height: 1; }\n.next .sub-cta strong { color: var(--acc); }\n\n/* ---------- gameplay module ---------- */\n.module { position: absolute; width: 480px; display: flex; flex-direction: column; gap: 12px; }\n.module.top-left     { left: 28px;  top: 28px; }\n.module.top-right    { right: 28px; top: 28px; }\n.module.bottom-left  { left: 28px;  bottom: 28px; flex-direction: column-reverse; }\n.module.bottom-right { right: 28px; bottom: 28px; flex-direction: column-reverse; }\n.module.top-left .cam, .module.top-right .cam { margin-bottom: 18px; }\n.module.bottom-left .cam, .module.bottom-right .cam { margin-top: 18px; }\n.cam { position: relative; width: 480px; height: 270px; border-radius: 14px;\n  box-shadow: 0 0 0 4px #000, 0 0 0 8px var(--acc), 0 16px 40px rgba(0,0,0,.5); }\n.cam .live-badge { position: absolute; right: 12px; top: 12px; font-size: 18px; padding: 6px 10px; }\n.cam .tag { position: absolute; left: -8px; bottom: -22px; display: flex; align-items: center; gap: 10px;\n  background: #000; border: 3px solid var(--acc); border-radius: 999px; padding: 6px 18px 6px 12px;\n  font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 26px; line-height: 1; }\n.cam .rank { position: absolute; right: 10px; bottom: 10px; }\n.live-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--flare); animation: pulse 1.6s infinite; }\n@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,59,59,.7); } 70% { box-shadow: 0 0 0 12px rgba(255,59,59,0); } 100% { box-shadow: 0 0 0 0 rgba(255,59,59,0); } }\n.module .goal-card { position: static; padding: 12px 16px 14px; }\n.module .gc-label { font-size: 20px; } .module .gc-pct { font-size: 30px; } .module .gc-amt { font-size: 18px; margin: 6px 0 10px; }\n.module .gc-bar { height: 10px; }\n.stats { display: flex; background: rgba(0,0,0,.8); border: 2px solid rgb(var(--acc-rgb) / .3); border-radius: 12px; overflow: hidden; }\n.stat { flex: 1; padding: 8px 14px; border-right: 2px solid rgb(var(--acc-rgb) / .2); text-align: center; }\n.stat:last-child { border-right: 0; }\n.stat .n { font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 28px; white-space: nowrap; line-height: 1.05; color: var(--acc); font-variant-numeric: tabular-nums; }\n.stat .l { font-size: 13px; font-weight: 600; color: var(--dim); }\n.tick { background: rgba(0,0,0,.8); border: 2px solid rgb(var(--acc-rgb) / .3); border-radius: 12px; padding: 10px 14px; font-size: 20px; }\n\n/* ---------- alert ---------- */\n.alert { position: absolute; left: 50%; top: 150px; transform: translateX(-50%); display: flex; align-items: center; gap: 22px;\n  background: #000; border: 4px solid var(--acc); border-radius: 20px; padding: 18px 34px 18px 18px; min-width: 620px;\n  box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 80px rgb(var(--acc-rgb) / .25); opacity: 0; pointer-events: none; }\n.alert.show { animation: drop 5.2s cubic-bezier(.2,.9,.2,1) forwards; }\n@keyframes drop {\n  0% { opacity: 0; transform: translate(-50%, -140px) rotate(-3deg); }\n  9% { opacity: 1; transform: translate(-50%, 12px) rotate(1deg); }\n  14% { transform: translate(-50%, 0) rotate(0); }\n  88% { opacity: 1; transform: translate(-50%, 0); }\n  100% { opacity: 0; transform: translate(-50%, -30px); } }\n.alert .badge { flex: none; width: 96px; height: 96px; border-radius: 16px; background: linear-gradient(180deg, var(--acc), var(--acc2));\n  display: grid; place-items: center; font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 28px; color: var(--on-acc); line-height: .95; text-align: center; }\n.alert .who { font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 60px; line-height: .95; color: var(--acc); }\n.alert .what { font-size: 24px; font-weight: 600; }\n.alert .msg { font-size: 20px; color: var(--dim); margin-top: 4px; max-width: 700px; }\n\n/* ---------- shared components ---------- */\n.tg { display: inline-block; font-family: var(--ui); font-weight: 700; font-size: 15px; letter-spacing: 1.5px;\n  background: var(--acc); color: var(--on-acc); padding: 5px 11px; border-radius: 5px; line-height: 1; white-space: nowrap; }\n.tg.warm { background: var(--warm); color: var(--on-warm); }\n.live-badge { display: inline-flex; align-items: center; gap: 9px; background: var(--flare); color: #fff;\n  font-weight: 700; font-size: 26px; letter-spacing: 2px; padding: 8px 16px; border-radius: 6px; line-height: 1; }\n.live-badge i { width: 11px; height: 11px; border-radius: 50%; background: #fff; animation: blink 1.4s infinite; }\n@keyframes blink { 50% { opacity: .25; } }\n.yt-pill { display: inline-flex; align-items: center; gap: 10px; background: rgba(255,255,255,.08); border: 2px solid rgba(255,255,255,.14);\n  padding: 7px 14px; border-radius: 10px; font-weight: 700; font-size: 24px; font-variant-numeric: tabular-nums; }\n.yt-ico { width: 30px; height: 21px; border-radius: 6px; background: var(--flare); position: relative; flex: none; }\n.yt-ico::after { content: \"\"; position: absolute; left: 12px; top: 5.5px; border-left: 9px solid #fff; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }\n.subs-box { display: inline-flex; flex-direction: column; align-items: flex-end; background: var(--text); color: var(--bg); padding: 6px 14px; border-radius: 6px; line-height: 1; }\n.subs-box b { font-family: var(--display); font-weight: var(--dw); font-size: 38px; font-variant-numeric: tabular-nums; }\n.subs-box small { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; margin-top: 3px; }\n.like-ico { width: 24px; height: 24px; flex: none; fill: var(--acc); }\n.stat .like-ico { width: 20px; height: 20px; vertical-align: -2px; margin-right: 4px; }\n\n.hdr { position: absolute; left: 40px; right: 40px; top: 36px; display: flex; align-items: center; gap: 18px; }\n.hdr .logo { width: 270px; filter: none; }\n.hdr .title { font-weight: 700; font-size: 34px; letter-spacing: 5px; color: var(--dim); margin-left: 10px; }\n.hdr .right { margin-left: auto; display: flex; align-items: center; gap: 14px; }\n\n.box { position: absolute; background: rgba(0,0,0,.72); border: 2px solid rgb(var(--acc-rgb) / .28); border-radius: 12px;\n  display: flex; align-items: center; gap: 16px; padding: 0 22px; font-weight: 600; font-size: 26px; overflow: hidden; }\n.box.warm { border-color: rgb(var(--warm-rgb) / .55); background: rgb(var(--warm-rgb) / .1); }\n.box.warm .val { color: var(--warm); font-weight: 700; }\n.box .val { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\n.sub-btn { position: absolute; display: grid; place-items: center; background: var(--acc); color: var(--on-acc); border-radius: 10px;\n  font-weight: 700; font-size: 26px; letter-spacing: 3px; box-shadow: 0 6px 0 var(--acc-dark); }\n\n.frm { position: absolute; border: 2px solid rgb(var(--acc-rgb) / .55); border-radius: 6px; }\n.frm::before, .frm::after { content: \"\"; position: absolute; width: 40px; height: 40px; border: 5px solid var(--acc); }\n.frm::before { left: -5px; top: -5px; border-right: 0; border-bottom: 0; border-radius: 8px 0 0 0; }\n.frm::after { right: -5px; bottom: -5px; border-left: 0; border-top: 0; border-radius: 0 0 8px 0; }\n.frm .name, .band .name { position: absolute; left: 16px; bottom: 16px; font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 30px;\n  background: #000; padding: 4px 14px; border-radius: 6px; border: 2px solid var(--acc); }\n.frm.fill { background: rgba(0,0,0,.6); }\n\n.goal-card { position: absolute; background: rgba(0,0,0,.8); border: 2px solid rgb(var(--warm-rgb) / .45); border-radius: 14px; padding: 16px 20px 18px; }\n.gc-top { display: flex; align-items: center; gap: 14px; }\n.gc-label { font-weight: 700; font-size: 26px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\n.gc-pct { font-family: var(--display); font-weight: var(--dw); font-size: 38px; color: var(--warm); line-height: 1; }\n.gc-amt { font-weight: 700; font-size: 22px; color: var(--warm); margin: 8px 0 12px; }\n.gc-amt span { color: var(--dim); font-weight: 600; }\n.gc-bar { height: 14px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; }\n.gc-bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: var(--warm); transition: width 1.4s cubic-bezier(.2,.8,.2,1); }\n\n.ticker { display: flex; align-items: center; gap: 12px; white-space: nowrap; overflow: hidden; }\n.ticker .tv { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }\n.ticker .tg.warm + .tv { color: var(--warm); }\n.topic { position: absolute; display: flex; align-items: center; gap: 20px; background: rgba(0,0,0,.75); border: 2px solid rgb(var(--acc-rgb) / .28);\n  border-radius: 12px; padding: 0 24px; font-weight: 700; font-size: 30px; }\n.topic span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\n\n.supporters { display: flex; align-items: stretch; background: rgba(0,0,0,.85); border: 2px solid rgb(var(--acc-rgb) / .4); border-radius: 10px; overflow: hidden; }\n.sp-tag { flex: none; background: var(--acc); color: var(--on-acc); font-weight: 700; font-size: 14px; letter-spacing: 1.5px; line-height: 1.1;\n  padding: 8px 12px; display: flex; flex-direction: column; justify-content: center; }\n.sp-item { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 0 16px; font-size: 22px; }\n.sp-pos { font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 28px; color: var(--acc); }\n.sp-name { flex: 1; min-width: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\n.sp-amt { font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 30px; color: var(--warm); white-space: nowrap; }\n.rank { display: inline-flex; align-items: stretch; background: #000; border: 2px solid var(--acc); border-radius: 6px; overflow: hidden; line-height: 1; }\n.rank .rk-l { background: var(--acc); color: var(--on-acc); font-weight: 700; font-size: 16px; letter-spacing: 2px; padding: 0 12px; display: flex; align-items: center; }\n.rank .rk-v { font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 38px; padding: 6px 14px 4px; color: var(--text); font-variant-numeric: tabular-nums; }\n\n/* Twitch: purple viewer icon instead of YouTube's play button */\n.twitch .yt-ico { background: #9146ff; border-radius: 4px 4px 4px 0; }\n.twitch .yt-ico::after { left: 9px; top: 5px; width: 3px; height: 8px; border: 0; background: #fff; box-shadow: 7px 0 0 #fff; }\n\n/* ================= Vertical ================= */\n/* Phones crop ~130px off each side of a vertical stream, so UI stays inside x 130-950 */\n.v .rail { left: 130px; right: 130px; bottom: 90px; flex-direction: column; gap: 14px; text-align: center; }\n.v .headline { font-size: 140px; }\n.v .clock { font-size: 210px; }\n.v .alert { min-width: 0; width: 820px; }\n.v .hdr { left: 130px; right: 130px; gap: 12px; }\n.v .hdr .logo { width: 210px; }\n.v .hdr .right { gap: 10px; }\n.band { position: absolute; left: 0; width: 1080px; border-top: 4px solid var(--acc); border-bottom: 4px solid var(--acc); }\n.band .cam-live { position: absolute; right: 130px; top: 18px; }\n.band .name { left: 130px; bottom: 18px; font-size: 34px; }\n.band .rank { position: absolute; right: 130px; bottom: 16px; }\n.band .supporters { position: absolute; left: 130px; top: 18px; width: 600px; height: 64px; }\n\n@media (prefers-reduced-motion: reduce) {\n  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }\n}\n[hidden] { display: none !important; }\n";
+const SCENE_FILES = {"brb.html": "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Be Right Back<\/title>\n<link rel=\"stylesheet\" href=\"assets/pack.css\">\n<style>\n.logo { width: 560px; margin-bottom: 40px; }\n<\/style>\n<\/head>\n<body class=\"solid\">\n<div class=\"stage\">\n  <canvas class=\"layer\" id=\"bg\"><\/canvas>\n  <canvas class=\"layer\" id=\"fx\"><\/canvas>\n  <div class=\"layer vignette\"><\/div>\n  <div class=\"center-stack\">\n    <img class=\"logo\" data-logo alt=\"\">\n    <div class=\"headline\" data-word=\"brbTitle\">Be right back<\/div>\n    <div class=\"sub\" data-word=\"brbSub\"><\/div>\n    <div class=\"loadbar\"><i><\/i><\/div>\n    <div class=\"away\">Away for <b id=\"away\">00:00<\/b><\/div>\n  <\/div>\n  <div class=\"rail\">\n    <div class=\"rot fade-swap\" id=\"tips\"><\/div>\n    <div class=\"coords\" id=\"coords\"><\/div>\n  <\/div>\n<\/div>\n<script src=\"assets/config.js\"><\/script>\n<script src=\"assets/pack.js\"><\/script>\n<script>\nconst { C, $, backdrop, motion, rotator, socialItems, pad } = Pack;\n  const t0 = performance.now();\n  document.fonts.ready.then(() => { backdrop($(\"#bg\"), 29, true); motion($(\"#fx\"), () => (Math.sin((performance.now() - t0) / 4000) + 1) / 4, \"idle\"); });\n  $(\"#coords\").textContent = C.handle || \"\";\n  rotator($(\"#tips\"), [...(C.tips || []).filter(Boolean), ...socialItems()], 6000);\n  setInterval(() => {\n    const s = Math.floor((performance.now() - t0) / 1000);\n    $(\"#away\").textContent = pad(Math.floor(s / 60)) + \":\" + pad(s % 60);\n  }, 1000);\n<\/script>\n<\/body><\/html>\n", "chat.html": "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Live Chat<\/title>\n<style>html,body{margin:0;background:transparent;color:#fff;font:600 22px system-ui,sans-serif}p{padding:20px;opacity:.7}<\/style>\n<\/head>\n<body>\n<!-- Live chat source.\n     Twitch: opens your popout chat straight away.\n     YouTube: waits until you are live, finds your stream, then opens its chat\n     (needs youtubeApiKey + channelId in config.js). Without a key, add your\n     stream's video id to the file path: chat.html#v=VIDEO_ID\n     Then paste assets/chat.css into this source's Custom CSS in OBS. -->\n<script src=\"assets/config.js\"><\/script>\n<script src=\"assets/pack.js\"><\/script>\n<script>\n  const C = Pack.C;\n  if (C.platform === \"twitch\") {\n    if (C.channel) location.replace(`https://www.twitch.tv/popout/${encodeURIComponent(C.channel)}/chat?popout=`);\n    else document.body.innerHTML = \"<p>Add your Twitch username as channel in assets/config.js<\/p>\";\n  } else {\n    const open = id => location.replace(`https://www.youtube.com/live_chat?is_popout=1&v=${id}`);\n    const manual = Pack.hash.get(\"v\");\n    if (manual) open(manual);\n    else {\n      const streaming = () => new Promise(res => {\n        const o = window.obsstudio;\n        if (!o || !o.getStatus) return res(true);\n        const t = setTimeout(() => res(true), 1500);\n        o.getStatus(st => { clearTimeout(t); res(!!(st && st.streaming)); });\n      });\n      async function check() { if (!(await streaming())) return; const id = await Pack.findLive(); if (id) open(id); }\n      check();\n      setInterval(check, 30000);\n    }\n  }\n<\/script>\n<\/body><\/html>\n", "chatting.html": "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Just Chatting<\/title>\n<link rel=\"stylesheet\" href=\"assets/pack.css\">\n<\/head>\n<body>\n<!-- OBS order (bottom to top): facecam, THIS, chat.html (inside the chat frame).\n     Facecam: x60 y170, 1180 x 664. Chat: x1290 y170, 570 x 870. -->\n<div class=\"stage\">\n  <canvas class=\"layer\" id=\"bg\"><\/canvas>\n  <div class=\"hdr\">\n    <img class=\"logo\" data-logo alt=\"\">\n    <span class=\"title\" data-word=\"chatTitle\">JUST CHATTING<\/span>\n    <div class=\"right\">\n      <div class=\"supporters\" data-supporters-box hidden style=\"height:64px;width:560px\">\n        <div class=\"sp-tag\">TOP<br>SUPPORTERS<\/div>\n      <div class=\"sp-item fade-swap\" data-supporters><\/div>\n      <\/div>\n      <span class=\"yt-pill\" data-yt><span class=\"yt-ico\"><\/span><span data-yt-viewers>0<\/span><\/span>\n      <span class=\"yt-pill\" data-yt><svg class=\"like-ico\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M2 10h4v12H2zM22 11.5c0-1.1-.9-2-2-2h-6.3l.9-4.6.03-.32c0-.41-.17-.79-.44-1.06L13.1 2.5 7.6 8c-.37.36-.6.86-.6 1.41V20c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3-7.05c.1-.23.16-.47.16-.73z\"/><\/svg><span data-yt-likes>0<\/span><\/span>\n      <span class=\"live-badge\"><i><\/i>LIVE<\/span>\n      <span class=\"subs-box\" data-yt><b data-yt-subs>0<\/b><small>SUBSCRIBERS<\/small><\/span>\n    <\/div>\n  <\/div>\n  <div class=\"frm\" style=\"left:60px;top:170px;width:1180px;height:664px\">\n    <span class=\"name\" data-name><\/span>\n  <\/div>\n  <div class=\"topic\" data-topic-box style=\"left:60px;top:862px;width:1180px;height:80px\">\n    <span class=\"tg warm\" data-word=\"topicLabel\">TODAY'S TOPIC<\/span><span data-topic><\/span>\n  <\/div>\n  <div class=\"box warm\" data-tip-box style=\"left:60px;top:962px;width:470px;height:78px\"><span class=\"tg warm\" data-tip-label><\/span><span class=\"val\" data-tip><\/span><\/div>\n  <div class=\"box\" data-social-box style=\"left:550px;top:962px;width:390px;height:78px\"><span class=\"tg\" data-social-label><\/span><span class=\"val\" data-social><\/span><\/div>\n  <div class=\"sub-btn\" data-subscribe style=\"left:960px;top:962px;width:280px;height:72px\">SUBSCRIBE<\/div>\n  <div class=\"frm fill\" style=\"left:1290px;top:170px;width:570px;height:870px\"><\/div>\n  <div class=\"alert\" id=\"alert\"><\/div>\n<\/div>\n<script src=\"assets/config.js\"><\/script>\n<script src=\"assets/pack.js\"><\/script>\n<script>\ndocument.fonts.ready.then(() => { const cv = Pack.$(\"#bg\"); Pack.backdrop(cv, 71); Pack.punch(cv, [[60, 170, 1180, 664]]); });\n  Pack.common();\n<\/script>\n<\/body><\/html>\n", "ending.html": "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Stream Over<\/title>\n<link rel=\"stylesheet\" href=\"assets/pack.css\">\n<style>\n.logo { width: 620px; margin-bottom: 30px; }\n  .headline { font-size: 220px; }\n<\/style>\n<\/head>\n<body class=\"solid\">\n<div class=\"stage\">\n  <canvas class=\"layer\" id=\"bg\"><\/canvas>\n  <canvas class=\"layer\" id=\"fx\"><\/canvas>\n  <div class=\"layer vignette\"><\/div>\n  <div class=\"center-stack\">\n    <img class=\"logo\" data-logo alt=\"\">\n    <div class=\"headline\" data-word=\"endTitle\">GG<\/div>\n    <div class=\"sub\" data-word=\"endSub\"><\/div>\n    <div class=\"next\">\n      <div><small>Next stream<\/small><strong id=\"next\"><\/strong><\/div>\n      <div class=\"sub-cta\"><small id=\"cta\">Subscribe<\/small><strong id=\"handle\"><\/strong><\/div>\n    <\/div>\n  <\/div>\n  <div class=\"rail\">\n    <div class=\"rot fade-swap\" id=\"socials\"><\/div>\n    <div class=\"coords\" id=\"coords\"><\/div>\n  <\/div>\n<\/div>\n<script src=\"assets/config.js\"><\/script>\n<script src=\"assets/pack.js\"><\/script>\n<script>\nconst { C, $, backdrop, motion, rotator, socialItems } = Pack;\n  document.fonts.ready.then(() => { backdrop($(\"#bg\"), 53, true); motion($(\"#fx\"), () => 1, \"end\"); });\n  $(\"#next\").textContent = C.nextStream || \"Soon\";\n  $(\"#handle\").textContent = C.handle || \"\";\n  $(\"#cta\").textContent = C.platform === \"twitch\" ? \"Follow\" : \"Subscribe\";\n  $(\"#coords\").textContent = C.gameId ? (C.gameIdLabel || \"ID\") + \" \" + C.gameId : \"\";\n  rotator($(\"#socials\"), socialItems(), 5000);\n<\/script>\n<\/body><\/html>\n", "gameplay.html": "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Gameplay Overlay<\/title>\n<link rel=\"stylesheet\" href=\"assets/pack.css\">\n<\/head>\n<body>\n<!-- Transparent overlay. OBS order (bottom to top): game capture, facecam (inside the frame), THIS. -->\n<div class=\"stage\">\n  <div class=\"module\" id=\"module\">\n    <div class=\"cam\">\n      <span class=\"live-badge\"><i><\/i>LIVE<\/span>\n      <div class=\"tag\"><span class=\"live-dot\"><\/span><span data-name><\/span><\/div>\n      <div class=\"rank\" data-rank-box hidden><span class=\"rk-l\" data-rank-label>RANK<\/span><span class=\"rk-v\" data-rank><\/span><\/div>\n    <\/div>\n    <div class=\"supporters\" data-supporters-box hidden>\n      <div class=\"sp-tag\">TOP<br>SUPPORTERS<\/div>\n      <div class=\"sp-item fade-swap\" data-supporters><\/div>\n    <\/div>\n    <div class=\"stats\" data-yt>\n      <div class=\"stat\"><div class=\"n\" data-yt-viewers>0<\/div><div class=\"l\">Watching<\/div><\/div>\n      <div class=\"stat\"><div class=\"n\"><svg class=\"like-ico\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M2 10h4v12H2zM22 11.5c0-1.1-.9-2-2-2h-6.3l.9-4.6.03-.32c0-.41-.17-.79-.44-1.06L13.1 2.5 7.6 8c-.37.36-.6.86-.6 1.41V20c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3-7.05c.1-.23.16-.47.16-.73z\"/><\/svg><span data-yt-likes>0<\/span><\/div><div class=\"l\">Likes<\/div><\/div>\n      <div class=\"stat\"><div class=\"n\" data-yt-subs>0<\/div><div class=\"l\">Subscribers<\/div><\/div>\n    <\/div>\n    <div class=\"tick ticker fade-swap\" data-ticker><\/div>\n    <div class=\"goal-card\" data-goal hidden><\/div>\n  <\/div>\n  <div class=\"alert\" id=\"alert\"><\/div>\n<\/div>\n<script src=\"assets/config.js\"><\/script>\n<script src=\"assets/pack.js\"><\/script>\n<script>\nPack.$(\"#module\").classList.add(Pack.hash.get(\"cam\") || Pack.C.camPosition || \"bottom-right\");\n  Pack.common();\n<\/script>\n<\/body><\/html>\n", "starting.html": "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Starting Soon<\/title>\n<link rel=\"stylesheet\" href=\"assets/pack.css\">\n<style>\n.logo { width: 900px; margin-bottom: 26px; animation: land 1.4s cubic-bezier(.2,.9,.2,1) both; }\n  @keyframes land { from { opacity: 0; transform: translateY(-260px) scale(.7) rotate(-6deg); } }\n<\/style>\n<\/head>\n<body class=\"solid\">\n<div class=\"stage\">\n  <canvas class=\"layer\" id=\"bg\"><\/canvas>\n  <canvas class=\"layer\" id=\"fx\"><\/canvas>\n  <div class=\"layer vignette\"><\/div>\n  <div class=\"center-stack\" id=\"stack\">\n    <img class=\"logo\" data-logo alt=\"\">\n    <div class=\"kicker\" id=\"kicker\" data-word=\"startKicker\">Starting soon<\/div>\n    <div class=\"clock\" id=\"clock\">05<span class=\"colon\">:<\/span>00<\/div>\n    <div class=\"zone-note\" id=\"note\" data-word=\"startNote\"><\/div>\n  <\/div>\n  <div class=\"rail\">\n    <div class=\"rot fade-swap\" id=\"tips\"><\/div>\n    <div class=\"coords\" id=\"coords\"><\/div>\n  <\/div>\n<\/div>\n<script src=\"assets/config.js\"><\/script>\n<script src=\"assets/pack.js\"><\/script>\n<script>\nconst { C, W8, $, hash, backdrop, motion, rotator, socialItems, fmt } = Pack;\n  const total = (parseFloat(hash.get(\"min\")) || C.startingMinutes || 5) * 60;\n  const start = performance.now();\n  const left = () => Math.max(0, total - (performance.now() - start) / 1000);\n  document.fonts.ready.then(() => { backdrop($(\"#bg\"), 11, true); motion($(\"#fx\"), () => 1 - left() / total, \"count\"); });\n  $(\"#coords\").textContent = C.gameId ? (C.gameIdLabel || \"ID\") + \" \" + C.gameId : (C.handle || \"\");\n  rotator($(\"#tips\"), [...(C.tips || []).filter(Boolean), ...socialItems()], 6000);\n  function tick() {\n    const s = left();\n    if (s <= 0) {\n      $(\"#stack\").classList.add(\"done\");\n      $(\"#kicker\").textContent = W8.startDone || \"Here we go\";\n      $(\"#clock\").textContent = \"LIVE\";\n      $(\"#note\").textContent = W8.startDoneNote || \"\";\n      return;\n    }\n    $(\"#clock\").innerHTML = fmt(Math.ceil(s));\n    requestAnimationFrame(tick);\n  }\n  tick();\n<\/script>\n<\/body><\/html>\n", "v-brb.html": "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Be Right Back (vertical)<\/title>\n<link rel=\"stylesheet\" href=\"assets/pack.css\">\n<style>\n.logo { width: 560px; margin-bottom: 40px; }\n  .logo { width: 700px; } .loadbar { width: 820px; } .sub { max-width: 860px; }\n<\/style>\n<\/head>\n<body class=\"solid\">\n<div class=\"stage v\">\n  <canvas class=\"layer\" id=\"bg\"><\/canvas>\n  <canvas class=\"layer\" id=\"fx\"><\/canvas>\n  <div class=\"layer vignette\"><\/div>\n  <div class=\"center-stack\">\n    <img class=\"logo\" data-logo alt=\"\">\n    <div class=\"headline\" data-word=\"brbTitle\">Be right back<\/div>\n    <div class=\"sub\" data-word=\"brbSub\"><\/div>\n    <div class=\"loadbar\"><i><\/i><\/div>\n    <div class=\"away\">Away for <b id=\"away\">00:00<\/b><\/div>\n  <\/div>\n  <div class=\"rail\">\n    <div class=\"rot fade-swap\" id=\"tips\"><\/div>\n    <div class=\"coords\" id=\"coords\"><\/div>\n  <\/div>\n<\/div>\n<script src=\"assets/config.js\"><\/script>\n<script src=\"assets/pack.js\"><\/script>\n<script>\nconst { C, $, backdrop, motion, rotator, socialItems, pad } = Pack;\n  const t0 = performance.now();\n  document.fonts.ready.then(() => { backdrop($(\"#bg\"), 29, true); motion($(\"#fx\"), () => (Math.sin((performance.now() - t0) / 4000) + 1) / 4, \"idle\"); });\n  $(\"#coords\").textContent = C.handle || \"\";\n  rotator($(\"#tips\"), [...(C.tips || []).filter(Boolean), ...socialItems()], 6000);\n  setInterval(() => {\n    const s = Math.floor((performance.now() - t0) / 1000);\n    $(\"#away\").textContent = pad(Math.floor(s / 60)) + \":\" + pad(s % 60);\n  }, 1000);\n<\/script>\n<\/body><\/html>\n", "v-chatting.html": "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Just Chatting (vertical)<\/title>\n<link rel=\"stylesheet\" href=\"assets/pack.css\">\n<\/head>\n<body>\n<!-- OBS order (bottom to top): facecam, THIS, chat.html (inside the chat frame).\n     Facecam: x130 y200, 820 x 615. Chat: x130 y845, 820 x 705. -->\n<div class=\"stage v\">\n  <canvas class=\"layer\" id=\"bg\"><\/canvas>\n  <div class=\"hdr\">\n    <img class=\"logo\" data-logo alt=\"\">\n    <div class=\"right\">\n      <span class=\"yt-pill\" data-yt><span class=\"yt-ico\"><\/span><span data-yt-viewers>0<\/span><\/span>\n      <span class=\"yt-pill\" data-yt><svg class=\"like-ico\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M2 10h4v12H2zM22 11.5c0-1.1-.9-2-2-2h-6.3l.9-4.6.03-.32c0-.41-.17-.79-.44-1.06L13.1 2.5 7.6 8c-.37.36-.6.86-.6 1.41V20c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3-7.05c.1-.23.16-.47.16-.73z\"/><\/svg><span data-yt-likes>0<\/span><\/span>\n      <span class=\"live-badge\"><i><\/i>LIVE<\/span>\n      <span class=\"subs-box\" data-yt><b data-yt-subs>0<\/b><small>SUBSCRIBERS<\/small><\/span>\n    <\/div>\n  <\/div>\n  <div class=\"frm\" style=\"left:130px;top:200px;width:820px;height:615px\">\n    <span class=\"name\" data-name><\/span>\n    <div class=\"supporters\" data-supporters-box hidden style=\"position:absolute;left:16px;top:16px;width:600px;height:64px\">\n      <div class=\"sp-tag\">TOP<br>SUPPORTERS<\/div>\n      <div class=\"sp-item fade-swap\" data-supporters><\/div>\n    <\/div>\n  <\/div>\n  <div class=\"frm fill\" style=\"left:130px;top:845px;width:820px;height:705px\"><\/div>\n  <div class=\"topic\" data-topic-box style=\"left:130px;top:1580px;width:820px;height:90px\">\n    <span class=\"tg warm\" data-word=\"topicLabel\">TODAY'S TOPIC<\/span><span data-topic><\/span>\n  <\/div>\n  <div class=\"box warm\" data-tip-box style=\"left:130px;top:1694px;width:820px;height:80px\"><span class=\"tg warm\" data-tip-label><\/span><span class=\"val\" data-tip><\/span><\/div>\n  <div class=\"box\" data-social-box style=\"left:130px;top:1798px;width:500px;height:80px\"><span class=\"tg\" data-social-label><\/span><span class=\"val\" data-social><\/span><\/div>\n  <div class=\"sub-btn\" data-subscribe style=\"left:650px;top:1798px;width:300px;height:74px\">SUBSCRIBE<\/div>\n  <div class=\"alert\" id=\"alert\" style=\"top:1010px\"><\/div>\n<\/div>\n<script src=\"assets/config.js\"><\/script>\n<script src=\"assets/pack.js\"><\/script>\n<script>\ndocument.fonts.ready.then(() => { const cv = Pack.$(\"#bg\"); Pack.backdrop(cv, 97); Pack.punch(cv, [[130, 200, 820, 615]]); });\n  Pack.common();\n<\/script>\n<\/body><\/html>\n", "v-ending.html": "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Stream Over (vertical)<\/title>\n<link rel=\"stylesheet\" href=\"assets/pack.css\">\n<style>\n.logo { width: 620px; margin-bottom: 30px; }\n  .headline { font-size: 220px; }\n  .logo { width: 760px; } .headline { font-size: 260px; } .next { flex-direction: column; width: 760px; } .next > div { text-align: center; } .sub { max-width: 980px; font-size: 32px; }\n<\/style>\n<\/head>\n<body class=\"solid\">\n<div class=\"stage v\">\n  <canvas class=\"layer\" id=\"bg\"><\/canvas>\n  <canvas class=\"layer\" id=\"fx\"><\/canvas>\n  <div class=\"layer vignette\"><\/div>\n  <div class=\"center-stack\">\n    <img class=\"logo\" data-logo alt=\"\">\n    <div class=\"headline\" data-word=\"endTitle\">GG<\/div>\n    <div class=\"sub\" data-word=\"endSub\"><\/div>\n    <div class=\"next\">\n      <div><small>Next stream<\/small><strong id=\"next\"><\/strong><\/div>\n      <div class=\"sub-cta\"><small id=\"cta\">Subscribe<\/small><strong id=\"handle\"><\/strong><\/div>\n    <\/div>\n  <\/div>\n  <div class=\"rail\">\n    <div class=\"rot fade-swap\" id=\"socials\"><\/div>\n    <div class=\"coords\" id=\"coords\"><\/div>\n  <\/div>\n<\/div>\n<script src=\"assets/config.js\"><\/script>\n<script src=\"assets/pack.js\"><\/script>\n<script>\nconst { C, $, backdrop, motion, rotator, socialItems } = Pack;\n  document.fonts.ready.then(() => { backdrop($(\"#bg\"), 53, true); motion($(\"#fx\"), () => 1, \"end\"); });\n  $(\"#next\").textContent = C.nextStream || \"Soon\";\n  $(\"#handle\").textContent = C.handle || \"\";\n  $(\"#cta\").textContent = C.platform === \"twitch\" ? \"Follow\" : \"Subscribe\";\n  $(\"#coords\").textContent = C.gameId ? (C.gameIdLabel || \"ID\") + \" \" + C.gameId : \"\";\n  rotator($(\"#socials\"), socialItems(), 5000);\n<\/script>\n<\/body><\/html>\n", "v-gameplay.html": "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Gameplay Overlay (vertical)<\/title>\n<link rel=\"stylesheet\" href=\"assets/pack.css\">\n<style>\n.hdr { top: 24px; }\n  .goal-card.compact { padding: 12px 18px 14px; }\n  .compact .gc-label { font-size: 22px; } .compact .gc-pct { font-size: 32px; }\n  .compact .gc-amt { font-size: 18px; margin: 4px 0 8px; } .compact .gc-bar { height: 10px; }\n<\/style>\n<\/head>\n<body>\n<!-- OBS order (bottom to top): game capture (16:9) + facecam (4:3), THIS.\n     Game: x0 y280, 1080 x 608. Facecam: x0 y888, 1080 x 810. -->\n<div class=\"stage v\">\n  <canvas class=\"layer\" id=\"bg\"><\/canvas>\n  <div class=\"hdr\">\n    <img class=\"logo\" data-logo alt=\"\">\n    <div class=\"right\">\n      <span class=\"yt-pill\" data-yt><span class=\"yt-ico\"><\/span><span data-yt-viewers>0<\/span><\/span>\n      <span class=\"yt-pill\" data-yt><svg class=\"like-ico\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M2 10h4v12H2zM22 11.5c0-1.1-.9-2-2-2h-6.3l.9-4.6.03-.32c0-.41-.17-.79-.44-1.06L13.1 2.5 7.6 8c-.37.36-.6.86-.6 1.41V20c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3-7.05c.1-.23.16-.47.16-.73z\"/><\/svg><span data-yt-likes>0<\/span><\/span>\n      <span class=\"live-badge\"><i><\/i>LIVE<\/span>\n      <span class=\"subs-box\" data-yt><b data-yt-subs>0<\/b><small>SUBSCRIBERS<\/small><\/span>\n    <\/div>\n  <\/div>\n  <div class=\"goal-card compact\" data-goal hidden style=\"left:130px;top:146px;width:820px\"><\/div>\n  <div class=\"band\" style=\"top:280px;height:608px\">\n    <div class=\"rank\" data-rank-box hidden><span class=\"rk-l\" data-rank-label>RANK<\/span><span class=\"rk-v\" data-rank><\/span><\/div>\n  <\/div>\n  <div class=\"band\" style=\"top:888px;height:810px\">\n    <div class=\"supporters\" data-supporters-box hidden>\n      <div class=\"sp-tag\">TOP<br>SUPPORTERS<\/div>\n      <div class=\"sp-item fade-swap\" data-supporters><\/div>\n    <\/div>\n    <span class=\"live-badge cam-live\"><i><\/i>LIVE<\/span>\n    <span class=\"name\" data-name><\/span>\n  <\/div>\n  <div class=\"box warm\" data-tip-box style=\"left:130px;top:1716px;width:820px;height:82px\"><span class=\"tg warm\" data-tip-label><\/span><span class=\"val\" data-tip><\/span><\/div>\n  <div class=\"box\" data-social-box style=\"left:130px;top:1814px;width:500px;height:82px\"><span class=\"tg\" data-social-label><\/span><span class=\"val\" data-social><\/span><\/div>\n  <div class=\"sub-btn\" data-subscribe style=\"left:650px;top:1814px;width:300px;height:76px\">SUBSCRIBE<\/div>\n  <div class=\"alert\" id=\"alert\" style=\"top:1000px\"><\/div>\n<\/div>\n<script src=\"assets/config.js\"><\/script>\n<script src=\"assets/pack.js\"><\/script>\n<script>\ndocument.fonts.ready.then(() => { const cv = Pack.$(\"#bg\"); Pack.backdrop(cv, 83); Pack.punch(cv, [[0, 280, 1080, 1418]]); });\n  Pack.common();\n<\/script>\n<\/body><\/html>\n", "v-starting.html": "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Starting Soon (vertical)<\/title>\n<link rel=\"stylesheet\" href=\"assets/pack.css\">\n<style>\n.logo { width: 900px; margin-bottom: 26px; animation: land 1.4s cubic-bezier(.2,.9,.2,1) both; }\n  @keyframes land { from { opacity: 0; transform: translateY(-260px) scale(.7) rotate(-6deg); } }\n  .logo { width: 860px; } .center-stack { top: 46%; } .kicker { font-size: 72px; } .zone-note { max-width: 800px; }\n<\/style>\n<\/head>\n<body class=\"solid\">\n<div class=\"stage v\">\n  <canvas class=\"layer\" id=\"bg\"><\/canvas>\n  <canvas class=\"layer\" id=\"fx\"><\/canvas>\n  <div class=\"layer vignette\"><\/div>\n  <div class=\"center-stack\" id=\"stack\">\n    <img class=\"logo\" data-logo alt=\"\">\n    <div class=\"kicker\" id=\"kicker\" data-word=\"startKicker\">Starting soon<\/div>\n    <div class=\"clock\" id=\"clock\">05<span class=\"colon\">:<\/span>00<\/div>\n    <div class=\"zone-note\" id=\"note\" data-word=\"startNote\"><\/div>\n  <\/div>\n  <div class=\"rail\">\n    <div class=\"rot fade-swap\" id=\"tips\"><\/div>\n    <div class=\"coords\" id=\"coords\"><\/div>\n  <\/div>\n<\/div>\n<script src=\"assets/config.js\"><\/script>\n<script src=\"assets/pack.js\"><\/script>\n<script>\nconst { C, W8, $, hash, backdrop, motion, rotator, socialItems, fmt } = Pack;\n  const total = (parseFloat(hash.get(\"min\")) || C.startingMinutes || 5) * 60;\n  const start = performance.now();\n  const left = () => Math.max(0, total - (performance.now() - start) / 1000);\n  document.fonts.ready.then(() => { backdrop($(\"#bg\"), 11, true); motion($(\"#fx\"), () => 1 - left() / total, \"count\"); });\n  $(\"#coords\").textContent = C.gameId ? (C.gameIdLabel || \"ID\") + \" \" + C.gameId : (C.handle || \"\");\n  rotator($(\"#tips\"), [...(C.tips || []).filter(Boolean), ...socialItems()], 6000);\n  function tick() {\n    const s = left();\n    if (s <= 0) {\n      $(\"#stack\").classList.add(\"done\");\n      $(\"#kicker\").textContent = W8.startDone || \"Here we go\";\n      $(\"#clock\").textContent = \"LIVE\";\n      $(\"#note\").textContent = W8.startDoneNote || \"\";\n      return;\n    }\n    $(\"#clock\").innerHTML = fmt(Math.ceil(s));\n    requestAnimationFrame(tick);\n  }\n  tick();\n<\/script>\n<\/body><\/html>\n"};
+/* ===================== presets ===================== */
+const FONTS = {
+  saira:  { label: "Saira + Chakra Petch", display: "Saira Condensed", ui: "Chakra Petch", dw: 800, ds: "italic",
+            q: "Chakra+Petch:wght@500;600;700&family=Saira+Condensed:wght@600;800;900" },
+  teko:   { label: "Teko + Rajdhani", display: "Teko", ui: "Rajdhani", dw: 600, ds: "normal",
+            q: "Teko:wght@500;600&family=Rajdhani:wght@500;600;700" },
+  pixel:  { label: "Pixelify + Rubik", display: "Pixelify Sans", ui: "Rubik", dw: 700, ds: "normal",
+            q: "Pixelify+Sans:wght@500;700&family=Rubik:wght@500;600;700" },
+  russo:  { label: "Russo One + Exo 2", display: "Russo One", ui: "Exo 2", dw: 400, ds: "normal",
+            q: "Russo+One&family=Exo+2:wght@500;600;700" },
+  anton:  { label: "Anton + Barlow", display: "Anton", ui: "Barlow", dw: 400, ds: "normal",
+            q: "Anton&family=Barlow:wght@500;600;700" },
+  bungee: { label: "Bungee + Nunito", display: "Bungee", ui: "Nunito", dw: 400, ds: "normal",
+            q: "Bungee&family=Nunito:wght@600;700;800" }
+};
+
+const THEMES = {
+  zone: {
+    label: "Battle royale", games: "BGMI, Free Fire, PUBG, Fortnite, COD Mobile",
+    note: "Shahzon's original: map contours, shrinking zone, plane route",
+    colors: { acc: "#dcfb3a", acc2: "#22b83a", warm: "#f5b82e", bg: "#000000", tint: "#0d2a12", text: "#f2ffe0" },
+    font: "saira", sharp: true, gameIdLabel: "BGMI UID", rankLabel: "RANK",
+    words: { startKicker: "Dropping in", startNote: "Zone closes when the stream starts", startDone: "Landed",
+      startDoneNote: "Switching scenes, get ready", brbTitle: "Healing up", brbSub: "Be right back. Don't leave the lobby.",
+      endTitle: "GG", endSub: "Stream over. Thanks for dropping in with me.", chatTitle: "JUST CHATTING",
+      topicLabel: "TODAY'S TOPIC", memberBadge: "SQUAD" }
+  },
+  radar: {
+    label: "Tactical shooter", games: "Valorant, CS2, Rainbow Six, Overwatch",
+    note: "Radar sweep with a round timer that fills as the countdown runs",
+    colors: { acc: "#ff4655", acc2: "#ff8a5c", warm: "#f6d36b", bg: "#06080c", tint: "#1b2130", text: "#ece8e1" },
+    font: "teko", sharp: true, gameIdLabel: "RIOT ID", rankLabel: "RANK",
+    words: { startKicker: "Agents locking in", startNote: "Round starts when the timer hits zero", startDone: "Round start",
+      startDoneNote: "Switching scenes, get ready", brbTitle: "Tactical timeout", brbSub: "Be right back. Hold the site.",
+      endTitle: "GG WP", endSub: "That's the match. Thanks for playing it with me.", chatTitle: "JUST CHATTING",
+      topicLabel: "TODAY'S TOPIC", memberBadge: "TEAM" }
+  },
+  pixel: {
+    label: "Sandbox & blocks", games: "Minecraft, Roblox, Terraria, Stardew",
+    note: "Pixel terrain, floating blocks and a chunk loading bar",
+    colors: { acc: "#7bd651", acc2: "#3f9cff", warm: "#ffcc33", bg: "#0a0f1c", tint: "#1d3152", text: "#f4f1e8" },
+    font: "pixel", sharp: true, gameIdLabel: "IGN", rankLabel: "LEVEL",
+    words: { startKicker: "Loading chunks", startNote: "Spawning in when the bar is full", startDone: "Spawned",
+      startDoneNote: "Switching scenes, get ready", brbTitle: "AFK", brbSub: "Be right back. Don't log off.",
+      endTitle: "GG", endSub: "Logging off. Thanks for building with me.", chatTitle: "JUST CHATTING",
+      topicLabel: "TODAY'S BUILD", memberBadge: "CREW" }
+  },
+  neon: {
+    label: "Neon road", games: "GTA RP, Forza, EA FC, IRL and anything else",
+    note: "Synth grid road with a sun that rises as the countdown runs",
+    colors: { acc: "#ff3fd8", acc2: "#36e2ff", warm: "#ffb23f", bg: "#07021a", tint: "#2c0c4e", text: "#f5ecff" },
+    font: "russo", sharp: false, gameIdLabel: "GAMERTAG", rankLabel: "RANK",
+    words: { startKicker: "Warming up", startNote: "We go live when the sun is up", startDone: "Let's go",
+      startDoneNote: "Switching scenes, get ready", brbTitle: "Pit stop", brbSub: "Be right back. Stay tuned.",
+      endTitle: "GG", endSub: "That's a wrap. Thanks for riding with me.", chatTitle: "JUST CHATTING",
+      topicLabel: "TODAY'S TOPIC", memberBadge: "CREW" }
+  }
+};
+
+const WORD_FIELDS = [
+  ["startKicker", "Starting Soon: line above the timer"], ["startNote", "Starting Soon: line under the timer"],
+  ["startDone", "Starting Soon: when the timer ends"], ["startDoneNote", "Starting Soon: note when the timer ends"],
+  ["brbTitle", "Be Right Back: headline"], ["brbSub", "Be Right Back: line under it"],
+  ["endTitle", "Stream Over: headline"], ["endSub", "Stream Over: line under it"],
+  ["chatTitle", "Just Chatting: header title"], ["topicLabel", "Just Chatting: topic tag"],
+  ["memberBadge", "Alert badge for members"]
+];
+
+function defaultState() {
+  const t = THEMES.zone;
+  return {
+    name: "NOVA", handle: "@novaplays", platform: "youtube", channel: "",
+    theme: "zone", colors: { ...t.colors }, font: t.font, sharp: t.sharp,
+    logo: null, logoType: null,
+    words: { ...t.words }, touched: {},
+    gameIdLabel: t.gameIdLabel, gameId: "5123456789",
+    tip: { label: "TIP / UPI", value: "nova@upi" },
+    social: { label: "INSTAGRAM", value: "@nova.plays" },
+    socials: [
+      { label: "TIP / UPI", value: "nova@upi", highlight: true },
+      { label: "INSTAGRAM", value: "@nova.plays", highlight: false },
+      { label: "YOUTUBE", value: "@novaplays", highlight: false }
+    ],
+    tips: ["Squad up: drop your ID in chat", "Like the stream if you want more of this", "Members get priority in custom rooms"],
+    topic: "Ranked grind and your questions", startingMinutes: 5, nextStream: "Tomorrow, 9 PM",
+    camPosition: "bottom-right", currency: "₹", locale: "en-IN", rankLabel: t.rankLabel,
+    live: {
+      rank: "4210",
+      supporters: [{ name: "Rahul", amount: "₹1,000" }, { name: "Simran", amount: "₹250" }, { name: "", amount: "" }, { name: "", amount: "" }, { name: "", amount: "" }],
+      goal: { on: true, label: "New mic", current: 4200, target: 10000 }
+    },
+    counters: true, youtubeApiKey: "", channelId: "", streamlabsSocketToken: ""
+  };
+}
+
+/* ===================== colour helpers ===================== */
+const hexRgb = h => { h = (h || "#000").replace("#", ""); if (h.length === 3) h = [...h].map(c => c + c).join(""); const n = parseInt(h, 16) || 0; return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const lum = h => { const [r, g, b] = hexRgb(h).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b; };
+const onColor = h => lum(h) > .32 ? "#000000" : "#ffffff";
+const darken = (h, k) => "#" + hexRgb(h).map(v => Math.round(v * k).toString(16).padStart(2, "0")).join("");
+const js = v => JSON.stringify(v, null, 2).replace(/</g, "\\u003c");
+const jsl = v => JSON.stringify(v).replace(/</g, "\\u003c");
+const lit = o => "{ " + Object.entries(o).map(([k, v]) => `${k}: ${jsl(v)}`).join(", ") + " }";
+const litList = a => a.length ? "[\n" + a.map(o => "    " + lit(o)).join(",\n") + "\n  ]" : "[]";
+const strList = a => a.length ? "[\n" + a.map(v => "    " + jsl(v)).join(",\n") + "\n  ]" : "[]";
+const litBlock = o => "{\n" + Object.entries(o).map(([k, v]) => `    ${k}: ${jsl(v)}`).join(",\n") + "\n  }";
+const escH = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const slug = s => (String(s || "my").normalize("NFKD").replace(/[^A-Za-z0-9]+/g, "") || "My");
+const logoExt = type => ({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif", "image/svg+xml": "svg" }[type] || "png");
+
+/* ===================== file generators ===================== */
+function fontImport(S) { return `@import url("https://fonts.googleapis.com/css2?family=${FONTS[S.font].q}&display=swap");`; }
+
+function packCSS(S) {
+  const c = S.colors, f = FONTS[S.font] || FONTS.saira;
+  const rgb = h => hexRgb(h).join(" ");
+  return `${fontImport(S)}
+
+/* =========================================================
+   YOUR COLOURS AND FONTS
+   Change a hex value, save, then right-click each source in OBS > Refresh.
+   If you change --acc, --warm or --text, also update the matching -rgb line
+   (the same colour written as three numbers, e.g. #ff0000 = 255 0 0).
+   ========================================================= */
+:root {
+  --acc:  ${c.acc};    --acc-rgb: ${rgb(c.acc)};     /* main colour */
+  --acc2: ${c.acc2};   /* second colour (gradients) */
+  --warm: ${c.warm};   --warm-rgb: ${rgb(c.warm)};   /* money, goal, tip box */
+  --bg:   ${c.bg};     /* background */
+  --tint: ${c.tint};   /* background glow */
+  --text: ${c.text};   --text-rgb: ${rgb(c.text)};
+  --on-acc: ${onColor(c.acc)}; --on-warm: ${onColor(c.warm)}; --acc-dark: ${darken(c.acc, .5)};
+  --flare: #ff3b3b;
+  --dim: rgb(var(--text-rgb) / .58);
+  --display: "${f.display}", Impact, "Arial Narrow", sans-serif;
+  --ui: "${f.ui}", "Segoe UI", system-ui, sans-serif;
+  --dw: ${f.dw}; --ds: ${f.ds};
+}
+
+${PACK_CSS}${S.sharp ? `
+/* Sharp look: no rounded corners. Delete this block for rounded corners. */
+*, *::before, *::after { border-radius: 0 !important; }
+.live-dot, .live-badge i { border-radius: 50% !important; }
+` : ""}`;
+}
+
+function configJS(S, preview) {
+  const yt = S.platform !== "twitch";
+  const name = S.name || "YOUR NAME";
+  const logo = S.logo ? (preview ? S.logo : `assets/logo.${logoExt(S.logoType)}`) : "";
+  const socials = S.socials.filter(s => s.label || s.value).map(s => ({ label: s.label, value: s.value, ...(s.highlight ? { highlight: true } : {}) }));
+  const out = `/* =========================================================
+   ${name.toUpperCase()} STREAM PACK: your details. Edit this file only.
+   Save, then right-click the source in OBS > Refresh.
+   Everything here is set once, before you go live.
+   ========================================================= */
+window.PACK = {
+  name: ${jsl(name)},
+  handle: ${jsl(S.handle)},
+  platform: ${jsl(S.platform)},            // "youtube" or "twitch"${yt ? "" : `
+  channel: ${jsl(S.channel)},              // your Twitch username (used for live chat)`}
+  theme: ${jsl(S.theme)},                  // "zone" | "radar" | "pixel" | "neon"
+
+  // Your logo image. Leave "" to show your name as a styled wordmark instead.
+  logo: ${jsl(logo)},
+
+  // Your in-game ID, shown on Starting Soon and Stream Over.
+  gameIdLabel: ${jsl(S.gameIdLabel)},
+  gameId: ${jsl(S.gameId)},
+
+  // The two info boxes on Just Chatting and vertical Gameplay. Value "" hides a box.
+  tip: ${lit(S.tip)},
+  social: ${lit(S.social)},
+
+  // Rotating ticker on the overlays and full-screen scenes.
+  socials: ${litList(socials)},
+
+  // Messages that rotate on Starting Soon and Be Right Back.
+  tips: ${strList(S.tips.filter(Boolean))},
+
+  // Topic bar on Just Chatting.
+  topic: ${jsl(S.topic)},
+
+  // Starting Soon countdown in minutes. Override per scene: starting.html#min=10
+  startingMinutes: ${Number(S.startingMinutes) || 5},
+
+  // Stream Over screen.
+  nextStream: ${jsl(S.nextStream)},
+
+  // Gameplay overlay: which corner the facecam module sits in.
+  // "bottom-right" | "bottom-left" | "top-left" | "top-right"
+  camPosition: ${jsl(S.camPosition)},
+
+  rankLabel: ${jsl(S.rankLabel)},
+  currency: ${jsl(S.currency)},
+  locale: ${jsl(S.locale || "en-IN")},     // number format, e.g. "en-IN" gives 1,00,000 and "en-US" gives 100,000
+
+  // Words on screen.
+  words: ${litBlock(S.words)},
+${yt ? `
+  // OPTIONAL: live viewer, like and subscriber counts that update by themselves,
+  // and automatic live chat. Paste a free YouTube Data API v3 key and your channel ID.
+  // Leave "" to hide the counters.
+  youtubeApiKey: ${jsl(preview ? "" : S.youtubeApiKey)},
+  channelId: ${jsl(S.channelId)},
+` : ""}
+  // OPTIONAL: real-time alerts (${yt ? "subscribers, members, Super Chats" : "follows, subs, bits, raids"}, tips) through Streamlabs,
+  // shown in this pack's own design. Paste your Streamlabs "Socket API Token".
+  // Keep this file private once a token is in it.
+  streamlabsSocketToken: ${jsl(preview ? "" : S.streamlabsSocketToken)}${preview ? `,
+  counters: ${S.counters && yt}` : ""}
+};
+`;
+  return out;
+}
+
+function liveJS(S) {
+  const L = S.live;
+  const g = L.goal && L.goal.on ? { label: L.goal.label, current: Number(L.goal.current) || 0, target: Number(L.goal.target) || 0, currency: S.currency } : null;
+  const sp = L.supporters.map(x => `    { name: ${jsl(x.name || "")}, amount: ${jsl(x.amount || "")} }`).join(",\n");
+  return `/* =========================================================
+   LIVE DATA: things you change DURING the stream.
+   Edit, press Save, and the overlays update within 5 seconds.
+   No need to refresh anything in OBS.
+   ========================================================= */
+window.PACK_LIVE = {
+
+  // Your current rank. Set to "" to hide the ${S.rankLabel || "RANK"} box.
+  rank: ${jsl(L.rank || "")},
+${S.platform !== "twitch" ? `
+  // Exact subscriber count from YouTube Studio (YouTube's public count is rounded).
+  // Type it once when you go live; new subs then add +1 on their own.
+  // "" = use YouTube's rounded count.
+  subscribers: "",
+` : ""}
+  // Top 5 supporters. Rotates on screen, highest first.
+  // Leave name empty ("") for slots you don't need yet.
+  supporters: [
+${sp}
+  ],
+
+  // Goal card. Set goal: null to hide it.
+  goal: ${g ? lit(g) : "null"}
+};
+`;
+}
+
+function chatCSS(S) {
+  const c = S.colors, f = FONTS[S.font];
+  const head = `/* ${(S.name || "Your").toUpperCase()} live chat skin
+   OBS: chat browser source > Properties > Custom CSS > replace everything with this file. */
+${fontImport(S)}
+`;
+  const msg = `margin: 8px 0 !important; padding: 10px 14px !important; background: rgba(0,0,0,.72) !important;
+  border-left: 4px solid ${c.acc} !important; border-radius: ${S.sharp ? 0 : 8}px !important;
+  font-family: "${f.ui}", "Segoe UI", sans-serif !important; animation: pk-in .35s cubic-bezier(.2,.9,.2,1) both;`;
+  if (S.platform === "twitch") return head + `
+html, body, .tw-root--theme-dark, .tw-root--theme-light, .chat-shell, .stream-chat, .chat-room, .chat-room__content,
+.chat-list--default, .chat-list--other, .chat-scrollable-area__message-container, .scrollable-area,
+[data-a-target="chat-scroller"], .simplebar-content { background: transparent !important; background-color: transparent !important; }
+.stream-chat-header, .chat-input, .chat-input__buttons-container, .community-highlight-stack__card,
+.chat-room__notifications, .chat-paused-footer, .channel-leaderboard, .pinned-chat__message-container,
+.chat-line__timestamp, [data-a-target="chat-welcome-message"], .community-points-summary { display: none !important; }
+::-webkit-scrollbar { display: none !important; }
+.chat-line__message { ${msg} }
+@keyframes pk-in { from { opacity: 0; transform: translateX(-24px); } }
+.chat-line__message:hover { background: rgba(0,0,0,.72) !important; }
+.chat-author__display-name, .chat-author__intl-login { color: ${c.acc} !important; font-size: 18px !important; font-weight: 700 !important; }
+.chat-line__username-container + span, .text-fragment, .mention-fragment, .message {
+  color: ${c.text} !important; font-size: 22px !important; font-weight: 500 !important; line-height: 1.3 !important; }
+.chat-badge { width: 18px !important; height: 18px !important; }
+.chat-line__message img.chat-image { height: 26px !important; }
+`;
+  return head + `
+html, body, yt-live-chat-app, yt-live-chat-renderer, #contents, #chat, #item-list,
+#item-scroller, #items, yt-live-chat-item-list-renderer, #item-offset {
+  background: transparent !important; background-color: transparent !important; overflow: hidden !important; }
+yt-live-chat-header-renderer, #input-panel, #chat-messages > #contents > #ticker,
+yt-live-chat-ticker-renderer, yt-live-chat-banner-manager, #panel-pages,
+yt-live-chat-viewer-engagement-message-renderer, yt-live-chat-restricted-participation-renderer,
+#show-more, yt-live-chat-mode-change-message-renderer, #separator,
+yt-live-chat-action-panel-renderer, #action-panel, yt-live-chat-poll-renderer,
+yt-live-chat-pinned-message-renderer, yt-live-chat-banner-renderer,
+ytd-engagement-panel-section-list-renderer, yt-live-chat-message-input-renderer, #docked-messages { display: none !important; }
+#items { padding: 0 6px !important; }
+yt-live-chat-text-message-renderer { display: block !important; ${msg} }
+@keyframes pk-in { from { opacity: 0; transform: translateX(-24px); } }
+yt-live-chat-text-message-renderer #author-photo, yt-live-chat-text-message-renderer #timestamp { display: none !important; }
+yt-live-chat-text-message-renderer #content { display: block !important; overflow: visible !important; }
+yt-live-chat-text-message-renderer #author-name { display: inline !important; font-size: 18px !important; font-weight: 700 !important; color: ${c.acc} !important; }
+yt-live-chat-text-message-renderer #chat-badges { display: inline !important; }
+yt-live-chat-text-message-renderer #chat-badges img { width: 18px !important; height: 18px !important; vertical-align: -3px; }
+yt-live-chat-text-message-renderer #message { display: block !important; margin-top: 3px !important;
+  font-size: 22px !important; font-weight: 500 !important; line-height: 1.3 !important; color: ${c.text} !important; word-break: break-word; }
+yt-live-chat-text-message-renderer #message img.emoji { width: 24px !important; height: 24px !important; vertical-align: -5px; }
+yt-live-chat-text-message-renderer[author-type="owner"] { border-left-color: #ff3b3b !important; }
+yt-live-chat-text-message-renderer[author-type="owner"] #author-name { color: #fff !important; background: #ff3b3b !important; padding: 1px 8px !important; }
+yt-live-chat-text-message-renderer[author-type="moderator"] { border-left-color: #6ea8ff !important; }
+yt-live-chat-text-message-renderer[author-type="moderator"] #author-name { color: #9cc4ff !important; }
+yt-live-chat-paid-message-renderer, yt-live-chat-membership-item-renderer { margin: 8px 0 !important; }
+`;
+}
+
+const CAM_XY = { "bottom-right": [1412, 782], "bottom-left": [28, 782], "top-left": [28, 28], "top-right": [1412, 28] };
+const HOLES = {
+  "gameplay.html": S => [[...CAM_XY[S.camPosition] || CAM_XY["bottom-right"], 480, 270, "cam"]],
+  "chatting.html": () => [[60, 170, 1180, 664, "cam"]],
+  "v-gameplay.html": () => [[0, 280, 1080, 608, "game"], [0, 888, 1080, 810, "cam"]],
+  "v-chatting.html": () => [[130, 200, 820, 615, "cam"]]
+};
+const CHAT_RECT = { "chatting.html": [1290, 170, 570, 870], "v-chatting.html": [130, 845, 820, 705] };
+const SCENES = [
+  { k: "starting", t: "Starting Soon" }, { k: "gameplay", t: "Gameplay" }, { k: "brb", t: "Be Right Back" },
+  { k: "chatting", t: "Just Chatting" }, { k: "ending", t: "Stream Over" }
+];
+
+function indexHTML(S) {
+  const yt = S.platform !== "twitch", nm = escH(S.name || "My");
+  const [cx, cy] = CAM_XY[S.camPosition] || CAM_XY["bottom-right"];
+  const list = v => SCENES.map(s => ({ f: (v ? "v-" : "") + s.k + ".html", t: s.t }));
+  const holesFor = f => (HOLES[f] ? HOLES[f](S) : []);
+  const scenesJs = jsl({ h: list(false).map(s => ({ ...s, holes: holesFor(s.f) })), v: list(true).map(s => ({ ...s, holes: holesFor(s.f) })) });
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${nm} Stream Pack</title>
+<link rel="stylesheet" href="assets/pack.css">
+<style>
+  html, body { overflow: auto; height: auto; }
+  body { background: var(--bg); padding: 40px clamp(16px, 4vw, 64px) 80px; max-width: 1500px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; margin-bottom: 36px; }
+  header .logo { width: 320px; max-width: 70vw; }
+  header p { font-size: 18px; color: var(--dim); max-width: 52ch; line-height: 1.5; }
+  h2 { font-family: var(--display); font-weight: var(--dw); font-style: var(--ds); font-size: 40px; margin: 48px 0 16px; color: var(--acc); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 22px; }
+  .vgrid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .card { background: var(--tint); border-radius: 14px; overflow: hidden; border: 2px solid rgb(var(--acc-rgb) / .2); }
+  .frame { position: relative; aspect-ratio: 16/9; background: #333 repeating-conic-gradient(#2a2a2a 0 25%, #353535 0 50%) 0 0/24px 24px; }
+  .vgrid .frame { aspect-ratio: 9/16; }
+  .frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .fake { position: absolute; background: linear-gradient(135deg,#3a4a5a,#1b232b); display: grid; place-items: center; color: #9ab; font-size: 12px; }
+  .meta { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .meta strong { font-size: 20px; } .meta code { font-size: 14px; color: var(--dim); }
+  .meta a { color: var(--acc); font-weight: 600; font-size: 15px; }
+  .tools { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  button { font: 600 16px var(--ui); background: #000; color: var(--text); border: 2px solid var(--acc); border-radius: 10px; padding: 10px 16px; cursor: pointer; }
+  button:hover { background: var(--acc); color: var(--on-acc); }
+  button:focus-visible, a:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  ol { padding-left: 24px; line-height: 1.6; font-size: 17px; max-width: 80ch; }
+  ol li { margin-bottom: 12px; }
+  ol code, p code { background: var(--tint); padding: 2px 7px; border-radius: 6px; color: var(--acc); }
+  .note { color: var(--dim); font-size: 16px; margin-top: 10px; max-width: 80ch; line-height: 1.5; }
+  .credit { margin-top: 56px; color: var(--dim); font-size: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <img class="logo" data-logo alt="">
+  <p>Your stream pack: horizontal and vertical scenes for OBS. Set your details once in <code>assets/config.js</code>, change rank, supporters and goal while live in <code>assets/live.js</code>.</p>
+</header>
+
+<h2>Horizontal scenes (1920×1080)</h2>
+<div class="grid" id="grid"></div>
+<h2>Vertical scenes (1080×1920)</h2>
+<div class="grid vgrid" id="vgrid"></div>
+
+<h2>Test alerts</h2>
+<div class="tools">
+  <button data-alert="sub">Test ${yt ? "subscriber" : "follow"}</button>
+  <button data-alert="member">Test ${yt ? "member" : "sub"}</button>
+  <button data-alert="superchat">Test ${yt ? "Super Chat" : "bits"}</button>
+  <button data-alert="tip">Test tip</button>
+</div>
+
+<h2>OBS setup</h2>
+<ol>
+  <li>Keep this whole folder together. The HTML files need the <code>assets</code> folder next to them.</li>
+  <li>Your details are in <code>assets/config.js</code> and your colours at the top of <code>assets/pack.css</code>. Open them with Notepad, edit, save, then right-click the source in OBS and choose Refresh.</li>
+  <li>For each scene: Sources › + › <b>Browser</b> › tick <b>Local file</b> › pick the HTML file. Horizontal files use <code>1920 × 1080</code>; <code>v-</code> files use <code>1080 × 1920</code>.</li>
+  <li><b>During the stream, edit only <code>assets/live.js</code></b>: your ${escH(S.rankLabel || "rank")}, the top 5 supporters and the goal. Save, and every overlay updates within 5 seconds without touching OBS.</li>
+  <li><b>Exact positions</b> (x, y, width × height):
+    <br>Gameplay facecam: <code>${cx}, ${cy}, 480 × 270</code> (move it with <code>camPosition</code> in config.js)
+    <br>Just Chatting facecam: <code>60, 170, 1180 × 664</code>, chat: <code>1290, 170, 570 × 870</code>
+    <br>Vertical gameplay game capture: <code>0, 280, 1080 × 608</code>, facecam: <code>0, 888, 1080 × 810</code>
+    <br>Vertical Just Chatting facecam: <code>130, 200, 820 × 615</code>, chat: <code>130, 845, 820 × 705</code></li>
+  <li><b>Gameplay</b>, bottom to top: game capture › facecam (inside the frame) › <code>gameplay.html</code>.</li>
+  <li><b>Just Chatting</b>, bottom to top: facecam › <code>chatting.html</code> › live chat.</li>
+  <li><b>Live chat:</b> add a Browser source › Local file › <code>chat.html</code>, sized to the chat frame. In its Properties, delete everything in <b>Custom CSS</b> and paste the contents of <code>assets/chat.css</code>. ${yt
+    ? `With a YouTube API key in config.js it finds your stream by itself within about 30 seconds of going live (tick “Refresh browser when scene becomes active” and set Page permissions to “Read access to OBS status information”). Without a key, use the file path <code>chat.html#v=VIDEO_ID</code> with your stream's video ID.`
+    : `It opens your Twitch chat straight away using <code>channel</code> in config.js. Twitch changes its chat page now and then; if the skin stops applying, the chat still works, just unstyled.`}</li>
+  <li><b>Vertical</b>: use a 1080×1920 canvas (a separate OBS profile, or the Aitum Vertical plugin to stream both at once). Keep important things inside the middle 820 px; phones crop the sides.</li>${yt ? `
+  <li><b>Live viewers, likes and subscribers (optional):</b> create a free YouTube Data API v3 key in Google Cloud Console, then paste it into <code>youtubeApiKey</code> with your <code>channelId</code>. Without a key those boxes stay hidden.</li>` : ""}
+  <li><b>Alerts (optional):</b> in the Streamlabs dashboard open Settings › API Settings › API Tokens and copy your <b>Socket API Token</b> into <code>streamlabsSocketToken</code>. Alerts then appear in this pack's design on Gameplay and Just Chatting. Don't also add Streamlabs' own Alert Box, or alerts will show twice.</li>
+  <li><b>Keep your keys private.</b> Once a key or token is in config.js, don't share this folder. To give the pack to a friend, send it with those two lines empty.</li>
+</ol>
+<p class="credit">Made with the Stream Pack Builder by SHAHZON.</p>
+
+<script src="assets/config.js"><\/script>
+<script src="assets/pack.js"><\/script>
+<script>
+  const D = ${scenesJs};
+  function build(list, el, W, H) { list.forEach(s => {
+    const c = document.createElement("div"); c.className = "card";
+    const fake = s.holes.map(([x,y,w,h,l]) => \`<div class="fake" style="left:\${x/W*100}%;top:\${y/H*100}%;width:\${w/W*100}%;height:\${h/H*100}%">\${l === "cam" ? "facecam" : "game"}</div>\`).join("");
+    c.innerHTML = \`<div class="frame">\${fake}<iframe src="\${s.f}" title="\${s.t}"></iframe></div>
+      <div class="meta"><strong>\${s.t}</strong><code>\${s.f}</code><a href="\${s.f}" target="_blank">Open full size</a></div>\`;
+    el.appendChild(c);
+  }); }
+  build(D.h, document.getElementById("grid"), 1920, 1080);
+  build(D.v, document.getElementById("vgrid"), 1080, 1920);
+  const names = ["Rohit_OP", "Simran", "GhostAkm", "Pixel Jatt", "Noob Master"];
+  document.querySelectorAll("[data-alert]").forEach(b => b.onclick = () => {
+    const type = b.dataset.alert, name = names[Math.floor(Math.random() * names.length)];
+    const money = type === "superchat" ? (Pack.C.platform === "twitch" ? "500 bits" : (Pack.C.currency || "") + "199") : type === "tip" ? (Pack.C.currency || "") + "100" : "";
+    document.querySelectorAll('iframe[src*="gameplay"], iframe[src*="chatting"]').forEach(f =>
+      f.contentWindow.postMessage({ pack: "alert", type, name, amount: money, msg: type === "superchat" ? "Next game, all in!" : "" }, "*"));
+  });
+<\/script>
+</body></html>
+`;
+}
+
+function readme(S) {
+  const nm = S.name || "Your";
+  return `${nm.toUpperCase()} STREAM PACK
+=====================
+
+1. Unzip this folder somewhere it will stay (e.g. Documents). Keep the files together.
+2. Open index.html in your browser to see every scene and the full OBS setup steps.
+3. In OBS, add each scene as a Browser source › Local file.
+4. Your details: assets/config.js   Your colours: top of assets/pack.css
+5. While live, edit only assets/live.js (rank, supporters, goal). It updates on screen by itself.
+
+${S.youtubeApiKey || S.streamlabsSocketToken ? "This copy contains your private keys in assets/config.js. Don't share it.\n" : "To share this pack with a friend, send it as it is: no private keys are inside.\n"}
+Made with the Stream Pack Builder by SHAHZON.
+`;
+}
+
+function buildFiles(S) {
+  const files = {};
+  for (const [name, html] of Object.entries(SCENE_FILES)) files[name] = html;
+  files["index.html"] = indexHTML(S);
+  files["README.txt"] = readme(S);
+  files["assets/config.js"] = configJS(S, false);
+  files["assets/live.js"] = liveJS(S);
+  files["assets/pack.js"] = PACK_JS;
+  files["assets/pack.css"] = packCSS(S);
+  files["assets/chat.css"] = chatCSS(S);
+  if (S.logo) {
+    const b64 = S.logo.split(",")[1] || "";
+    const bin = atob(b64), u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    files[`assets/logo.${logoExt(S.logoType)}`] = u;
+  }
+  return files;
+}
+
+/* preview: one scene as a self-contained document */
+function previewDoc(S, file) {
+  return SCENE_FILES[file]
+    .replace('<link rel="stylesheet" href="assets/pack.css">', () => `<style>${packCSS(S)}</style>`)
+    .replace('<script src="assets/config.js"><\/script>', () => `<script>window.PACK_PREVIEW=true;\n${configJS(S, true)}\n${liveJS(S)}<\/script>`)
+    .replace('<script src="assets/pack.js"><\/script>', () => `<script>${PACK_JS}<\/script>`);
+}
+
+(function () {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const KEY = "spb:v1";
+  let S = load();
+  const ui = { scene: "starting", vertical: false, pendingAlert: null };
+
+  /* ---------------- persistence (secrets are never stored) ---------------- */
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) { const d = defaultState(), v = JSON.parse(raw); return { ...d, ...v, colors: { ...d.colors, ...v.colors }, words: { ...d.words, ...v.words }, live: { ...d.live, ...v.live }, youtubeApiKey: "", streamlabsSocketToken: "" }; }
+    } catch {}
+    return defaultState();
+  }
+  let saveT;
+  function save() {
+    clearTimeout(saveT);
+    saveT = setTimeout(() => {
+      const copy = { ...S, youtubeApiKey: "", streamlabsSocketToken: "" };
+      if (copy.logo && copy.logo.length > 2.5e6) { copy.logo = null; copy.logoType = null; }
+      try { localStorage.setItem(KEY, JSON.stringify(copy)); } catch {}
+    }, 400);
+  }
+
+  /* ---------------- form ---------------- */
+  const get = (p) => p.split(".").reduce((o, k) => o == null ? o : o[k], S);
+  const set = (p, v) => { const ks = p.split("."), last = ks.pop(); ks.reduce((o, k) => o[k], S)[last] = v; };
+  const T = (k, label, ph = "", extra = "") => `<label class="field"><span>${label}</span><input type="text" data-k="${k}" placeholder="${escH(ph)}" ${extra}></label>`;
+  const swatch = t => {
+    const c = THEMES[t].colors;
+    return `<span class="sw" style="background:radial-gradient(circle at 30% 30%, ${c.tint}, ${c.bg})">
+      <i style="left:8px;top:8px;width:38px;height:38px;border-radius:50%;border:4px solid ${c.acc}"></i>
+      <i style="right:6px;bottom:6px;width:14px;height:14px;background:${c.warm}"></i></span>`;
+  };
+
+  function renderForm() {
+    $("#form").innerHTML = `
+    <div class="intro"><details>
+      <summary>How the pack works</summary>
+      <div class="how">
+        <p>Each scene is a small web page that OBS shows as a <b>Browser source</b>. Overlays have see-through holes where your facecam and game go underneath.</p>
+        <p>You set your details once in <b>config.js</b>. While live you only touch <b>live.js</b> (rank, top supporters, goal) and every overlay updates on its own within 5 seconds.</p>
+        <p>Alerts come from <b>Streamlabs</b> but show in your pack's design. On YouTube, an optional free API key adds live viewer, like and subscriber counts and finds your live chat by itself.</p>
+        <p>Everything you type here stays in your browser and goes only into the file you download.</p>
+      </div></details></div>
+
+    <section class="grp">
+      <h2>You</h2>
+      <p class="hint">The basics that show up on every scene. The example details are placeholders; replace them with yours.</p>
+      ${T("name", "Name on screen", "NOVA")}
+      <div class="row">${T("handle", "Channel handle", "@yourchannel")}
+        <label class="field"><span>Platform</span><div class="seg" id="plat"><button type="button" data-v="youtube">YouTube</button><button type="button" data-v="twitch">Twitch</button></div></label></div>
+      <div class="only-tw">${T("channel", "Twitch username (for live chat)", "yourname")}</div>
+      <div class="field"><span>Logo</span>
+        <div class="logo-drop"><div class="thumb" id="thumb"></div>
+          <div><div class="acts"><label class="btn small" for="logo-in" tabindex="0">Upload logo</label><button type="button" class="btn small plain" id="logo-rm">Remove</button></div>
+          <p>A PNG with a see-through background works best. No logo? Your name is styled as one.</p></div>
+        </div>
+        <input type="file" id="logo-in" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" hidden>
+      </div>
+    </section>
+
+    <section class="grp">
+      <h2>Style</h2>
+      <p class="hint">Pick the art that matches your game. It sets the background, animation, colours and words, which you can then change.</p>
+      <div class="themes" id="themes">${Object.entries(THEMES).map(([k, t]) => `
+        <button type="button" class="theme" data-theme="${k}">${swatch(k)}<span><strong>${t.label}</strong><small>${t.games}</small><small>${t.note}</small></span></button>`).join("")}
+      </div>
+      <div class="field"><span>Colours</span></div>
+      <div class="colors">${[["acc", "Main"], ["acc2", "Second"], ["warm", "Money & goals"], ["bg", "Background"], ["tint", "Background glow"], ["text", "Text"]].map(([k, l]) => `
+        <label class="color"><input type="color" data-color="${k}" aria-label="${l} colour"><div><b>${l}</b><input type="text" data-hex="${k}" maxlength="7" aria-label="${l} hex"></div></label>`).join("")}
+      </div>
+      <div class="field"><span>Fonts</span></div>
+      <div class="fonts" id="fonts">${Object.entries(FONTS).map(([k, f]) => `
+        <button type="button" class="font" data-font="${k}"><span class="s" style="font-family:'${f.display}';font-weight:${f.dw};font-style:${f.ds}">GG 05:00</span><small>${f.label}</small></button>`).join("")}
+      </div>
+      <div class="field"><span>Corners</span></div>
+      <div class="corners" id="corners"><button type="button" data-v="1">Sharp</button><button type="button" data-v="0">Rounded</button></div>
+    </section>
+
+    <section class="grp">
+      <h2>Info on screen</h2>
+      <p class="hint">Your ID, the two info boxes, and the ticker that rotates through your links.</p>
+      <div class="row">${T("gameIdLabel", "Game ID label", "BGMI UID")}${T("gameId", "Game ID", "Leave empty to hide")}</div>
+      <div class="row">${T("tip.label", "Box 1 label", "TIP / UPI")}${T("tip.value", "Box 1 value", "Empty hides it")}</div>
+      <div class="row">${T("social.label", "Box 2 label", "INSTAGRAM")}${T("social.value", "Box 2 value", "Empty hides it")}</div>
+      <div class="field"><span>Ticker (label, value, star to highlight)</span></div>
+      <div class="list" id="socials"></div>
+      <button type="button" class="btn small" id="add-social">Add a ticker line</button>
+      <label class="field" style="margin-top:16px"><span>Rotating messages on Starting Soon and Be Right Back (one per line)</span><textarea data-k="tips" rows="4"></textarea></label>
+    </section>
+
+    <section class="grp">
+      <h2>Stream details</h2>
+      ${T("topic", "Just Chatting topic", "What are we talking about today?")}
+      <div class="row">
+        <label class="field"><span>Countdown (minutes)</span><input type="number" min="1" max="60" data-k="startingMinutes"></label>
+        ${T("nextStream", "Next stream", "Tomorrow, 9 PM")}
+      </div>
+      <div class="field"><span>Facecam corner on the gameplay overlay</span></div>
+      <div class="corners" id="cam">
+        <button type="button" data-v="top-left">Top left</button><button type="button" data-v="top-right">Top right</button>
+        <button type="button" data-v="bottom-left">Bottom left</button><button type="button" data-v="bottom-right">Bottom right</button>
+      </div>
+      <div class="row">${T("currency", "Currency symbol", "₹")}
+        <label class="field"><span>Number style</span><select data-k="locale"><option value="en-IN">1,00,000 (India)</option><option value="en-US">100,000</option><option value="de-DE">100.000</option></select></label></div>
+    </section>
+
+    <section class="grp">
+      <h2>Words on screen</h2>
+      <p class="hint">Your style fills these in. Change any of them to sound like you.</p>
+      ${WORD_FIELDS.map(([k, l]) => T("words." + k, l)).join("")}
+      ${T("rankLabel", "Rank box label", "RANK")}
+      <button type="button" class="btn small" id="reset-words">Reset words to the style's defaults</button>
+    </section>
+
+    <section class="grp">
+      <h2>While you're live</h2>
+      <p class="hint">These go into <b>live.js</b>, the file you edit during a stream. Set them here to see how they look.</p>
+      ${T("live.rank", "Rank (empty hides the box)", "4210")}
+      <div class="field"><span>Top supporters (empty name skips a slot)</span></div>
+      <div class="list" id="supporters"></div>
+      <label class="check"><input type="checkbox" data-k="live.goal.on"><span>Show a goal card</span></label>
+      <div class="row3">${T("live.goal.label", "Goal", "New mic")}
+        <label class="field"><span>Raised</span><input type="number" min="0" data-k="live.goal.current"></label>
+        <label class="field"><span>Target</span><input type="number" min="0" data-k="live.goal.target"></label></div>
+    </section>
+
+    <section class="grp">
+      <h2>Automation (optional)</h2>
+      <p class="hint">Skip this now if you like. You can paste these into config.js later.</p>
+      <div class="only-yt">
+        <label class="check"><input type="checkbox" data-k="counters"><span>Show live viewers, likes and subscribers. Needs a free YouTube Data API v3 key from Google Cloud Console.</span></label>
+        <div class="row">${T("youtubeApiKey", "YouTube API key", "AIza…", 'autocomplete="off" spellcheck="false"')}${T("channelId", "Channel ID", "UC…", 'spellcheck="false"')}</div>
+      </div>
+      ${T("streamlabsSocketToken", "Streamlabs Socket API token (for alerts)", "From Streamlabs › Settings › API Settings", 'autocomplete="off" spellcheck="false"')}
+      <p class="warn">Keys and tokens are private. They aren't saved in this page, only written into your download. Once they're in your pack, don't share the folder or post config.js anywhere.</p>
+    </section>
+
+    <div class="endbar">
+      <button class="btn primary" id="dl-bottom" type="button">Download my pack</button>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+      <button class="btn small plain" id="reset-all" type="button">Start over</button>
+    </div>
+    <p class="foot">Made by SHAHZON for fellow streamers. Share this page with anyone who wants their own pack.</p>`;
+    bind();
+    sync();
+  }
+
+  function sync() {
+    $$("[data-k]").forEach(el => {
+      const v = get(el.dataset.k);
+      if (el.type === "checkbox") el.checked = !!v;
+      else if (el.tagName === "TEXTAREA") el.value = (v || []).join("\n");
+      else if (document.activeElement !== el) el.value = v ?? "";
+    });
+    $$("[data-color]").forEach(el => el.value = S.colors[el.dataset.color]);
+    $$("[data-hex]").forEach(el => { if (document.activeElement !== el) el.value = S.colors[el.dataset.hex]; });
+    $$("#themes [data-theme]").forEach(b => b.setAttribute("aria-pressed", b.dataset.theme === S.theme));
+    $$("#fonts [data-font]").forEach(b => b.setAttribute("aria-pressed", b.dataset.font === S.font));
+    $$("#corners button").forEach(b => b.setAttribute("aria-pressed", (b.dataset.v === "1") === !!S.sharp));
+    $$("#cam button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === S.camPosition));
+    $$("#plat button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === S.platform));
+    document.body.classList.toggle("tw", S.platform === "twitch");
+    document.body.classList.toggle("yt", S.platform !== "twitch");
+    $("#a-sub").textContent = S.platform === "twitch" ? "New follower" : "New subscriber";
+    $("#a-mem").textContent = S.platform === "twitch" ? "Subscriber" : "Member";
+    $("#a-sc").textContent = S.platform === "twitch" ? "Bits" : "Super Chat";
+    $("#thumb").innerHTML = S.logo ? `<img src="${S.logo}" alt="Your logo">` : "No logo";
+    renderLists();
+  }
+
+  function renderLists() {
+    $("#socials").innerHTML = S.socials.map((s, i) => `
+      <div class="li"><input type="text" value="${escH(s.label)}" data-sl="${i}" placeholder="LABEL" aria-label="Ticker label ${i + 1}">
+        <input type="text" value="${escH(s.value)}" data-sv="${i}" placeholder="value" aria-label="Ticker value ${i + 1}">
+        <button type="button" class="icon-btn star" data-sh="${i}" aria-pressed="${!!s.highlight}" title="Highlight in the money colour" aria-label="Highlight line ${i + 1}">★</button>
+        <button type="button" class="icon-btn" data-sx="${i}" title="Remove" aria-label="Remove line ${i + 1}">×</button></div>`).join("");
+    $("#supporters").innerHTML = S.live.supporters.map((s, i) => `
+      <div class="li sp"><span class="n">#${i + 1}</span><input type="text" value="${escH(s.name)}" data-pn="${i}" placeholder="Name" aria-label="Supporter ${i + 1} name">
+        <input type="text" value="${escH(s.amount)}" data-pa="${i}" placeholder="${escH(S.currency)}500" aria-label="Supporter ${i + 1} amount"></div>`).join("");
+  }
+
+  const touchable = k => k.startsWith("words.") || k === "gameIdLabel" || k === "rankLabel";
+  function bind() {
+    $("#form").addEventListener("input", e => {
+      const el = e.target;
+      if (el.dataset.k) {
+        const k = el.dataset.k;
+        let v = el.type === "checkbox" ? el.checked : el.tagName === "TEXTAREA" ? el.value.split("\n").map(x => x.trim()).filter(Boolean) : el.value;
+        if (el.type === "number") v = el.value === "" ? "" : Number(el.value);
+        set(k, v);
+        if (touchable(k)) S.touched[k] = true;
+        if (k === "currency") renderLists();
+      } else if (el.dataset.color) { S.colors[el.dataset.color] = el.value; const h = $(`[data-hex="${el.dataset.color}"]`); if (h) h.value = el.value; }
+      else if (el.dataset.hex) {
+        let v = el.value.trim(); if (!v.startsWith("#")) v = "#" + v;
+        if (/^#[0-9a-f]{6}$/i.test(v)) { S.colors[el.dataset.hex] = v.toLowerCase(); $(`[data-color="${el.dataset.hex}"]`).value = v; } else return;
+      }
+      else if (el.dataset.sl) S.socials[+el.dataset.sl].label = el.value;
+      else if (el.dataset.sv) S.socials[+el.dataset.sv].value = el.value;
+      else if (el.dataset.pn) S.live.supporters[+el.dataset.pn].name = el.value;
+      else if (el.dataset.pa) S.live.supporters[+el.dataset.pa].amount = el.value;
+      else return;
+      changed();
+    });
+    $("#form").addEventListener("change", e => { if (e.target.tagName === "SELECT" || e.target.type === "checkbox") { set(e.target.dataset.k, e.target.type === "checkbox" ? e.target.checked : e.target.value); changed(); } });
+    $("#form").addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.theme) applyTheme(b.dataset.theme);
+      else if (b.dataset.font) S.font = b.dataset.font;
+      else if (b.closest("#corners")) S.sharp = b.dataset.v === "1";
+      else if (b.closest("#cam")) { S.camPosition = b.dataset.v; if (ui.scene !== "gameplay" || ui.vertical) { ui.scene = "gameplay"; ui.vertical = false; renderKeys(); } }
+      else if (b.closest("#plat")) S.platform = b.dataset.v;
+      else if (b.dataset.sh) S.socials[+b.dataset.sh].highlight = !S.socials[+b.dataset.sh].highlight;
+      else if (b.dataset.sx) S.socials.splice(+b.dataset.sx, 1);
+      else if (b.id === "add-social") S.socials.push({ label: "", value: "", highlight: false });
+      else if (b.id === "reset-words") { S.words = { ...THEMES[S.theme].words }; S.gameIdLabel = THEMES[S.theme].gameIdLabel; S.rankLabel = THEMES[S.theme].rankLabel; S.touched = {}; }
+      else if (b.id === "logo-rm") { S.logo = null; S.logoType = null; $("#logo-in").value = ""; }
+      else if (b.id === "dl-bottom") return download();
+      else if (b.id === "reset-all") { if (!confirm("Clear everything and start from the example?")) return; S = defaultState(); try { localStorage.removeItem(KEY); } catch {} }
+      else return;
+      sync(); changed();
+    });
+    $("#form").addEventListener("keydown", e => { if (e.target.matches("label[for=logo-in]") && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); $("#logo-in").click(); } });
+    $("#logo-in").addEventListener("change", e => {
+      const f = e.target.files[0]; if (!f) return;
+      if (f.size > 8e6) { status("That image is over 8 MB. Please use a smaller PNG.", "err"); return; }
+      const r = new FileReader();
+      r.onload = () => { S.logo = r.result; S.logoType = f.type || "image/png"; sync(); changed(); };
+      r.readAsDataURL(f);
+    });
+  }
+
+  function applyTheme(k) {
+    const t = THEMES[k]; S.theme = k;
+    S.colors = { ...t.colors }; S.font = t.font; S.sharp = t.sharp;
+    for (const [w, v] of Object.entries(t.words)) if (!S.touched["words." + w]) S.words[w] = v;
+    if (!S.touched.gameIdLabel) S.gameIdLabel = t.gameIdLabel;
+    if (!S.touched.rankLabel) S.rankLabel = t.rankLabel;
+  }
+
+  /* ---------------- preview ---------------- */
+  const sceneFile = () => (ui.vertical ? "v-" : "") + ui.scene + ".html";
+  function renderKeys() {
+    $("#keys").innerHTML = SCENES.map(s => `<button type="button" class="key" data-scene="${s.k}" aria-pressed="${s.k === ui.scene}">${s.t}</button>`).join("") +
+      `<div class="seg" role="group" aria-label="Orientation"><button type="button" data-o="0" aria-pressed="${!ui.vertical}">Horizontal</button><button type="button" data-o="1" aria-pressed="${ui.vertical}">Vertical</button></div>`;
+  }
+  $("#keys").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.scene) ui.scene = b.dataset.scene; else ui.vertical = b.dataset.o === "1";
+    renderKeys(); refresh(true);
+  });
+
+  let pvT;
+  function changed() { save(); clearTimeout(pvT); pvT = setTimeout(() => refresh(false), 350); }
+
+  const CAM_SVG = `<svg viewBox="0 0 100 80" aria-hidden="true"><circle cx="50" cy="26" r="20"/><path d="M8 80c4-24 22-34 42-34s38 10 42 34z"/></svg>`;
+  const CHAT_LINES = [["Simran", "that clutch was insane"], ["Rohit_OP", "bhai sensitivity settings?"], ["GhostAkm", "first time here, subbed"], ["Pixel Jatt", "GG"], ["Noob Master", "one more match please"], ["Aarav", "drop your ID in chat"]];
+  function ghosts() {
+    const f = sceneFile(), W = ui.vertical ? 1080 : 1920, H = ui.vertical ? 1920 : 1080;
+    const under = $("#under"), over = $("#over");
+    [under, over].forEach(g => { g.style.width = W + "px"; g.style.height = H + "px"; });
+    const holes = HOLES[f] ? HOLES[f](S) : [];
+    let u = "";
+    if (f === "gameplay.html") u += `<div class="feed"><span class="lbl">Your game capture</span></div>`;
+    u += holes.map(([x, y, w, h, l]) => `<div class="hole ${l}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px">${l === "cam" ? CAM_SVG + '<span class="lbl">Your facecam</span>' : '<span class="lbl">Your game capture</span>'}</div>`).join("");
+    under.innerHTML = u;
+    const cr = CHAT_RECT[f];
+    over.style.setProperty("--acc", S.colors.acc); over.style.setProperty("--txt", S.colors.text);
+    over.innerHTML = cr ? `<div class="chat" style="left:${cr[0]}px;top:${cr[1]}px;width:${cr[2]}px;height:${cr[3]}px;font-family:'${FONTS[S.font].ui}',sans-serif">${CHAT_LINES.map(([n, m]) => `<div class="msg" style="border-radius:${S.sharp ? 0 : 8}px"><b>${n}</b><span>${m}</span></div>`).join("")}</div>` : "";
+    fitGhosts();
+  }
+  function fitGhosts() {
+    const m = $("#monitor"), W = ui.vertical ? 1080 : 1920, s = m.clientWidth / W;
+    $$(".ghost").forEach(g => g.style.transform = `scale(${s})`);
+  }
+  addEventListener("resize", fitGhosts);
+
+  function refresh(sceneChanged) {
+    const f = sceneFile();
+    $("#monitor").classList.toggle("vert", ui.vertical);
+    $("#res").textContent = ui.vertical ? "1080 × 1920" : "1920 × 1080";
+    $("#file").textContent = f;
+    ghosts();
+    $("#pv").srcdoc = previewDoc(S, f);
+    if (sceneChanged) requestAnimationFrame(fitGhosts);
+  }
+  $("#pv").addEventListener("load", () => {
+    fitGhosts();
+    if (ui.pendingAlert) { const a = ui.pendingAlert; ui.pendingAlert = null; setTimeout(() => fire(a), 700); }
+  });
+
+  const NAMES = ["Rohit_OP", "Simran", "GhostAkm", "Pixel Jatt", "Noob Master"];
+  function fire(type) {
+    const tw = S.platform === "twitch";
+    const amount = type === "superchat" ? (tw ? "500 bits" : S.currency + "199") : type === "tip" ? S.currency + "100" : "";
+    $("#pv").contentWindow.postMessage({ pack: "alert", type, name: NAMES[Math.floor(Math.random() * NAMES.length)], amount, msg: type === "superchat" ? "Next game, all in!" : type === "member" ? "" : "" }, "*");
+  }
+  $$("[data-alert]").forEach(b => b.addEventListener("click", () => {
+    const type = b.dataset.alert;
+    if (ui.scene === "gameplay" || ui.scene === "chatting") return fire(type);
+    ui.scene = "gameplay"; ui.pendingAlert = type; renderKeys(); refresh(true);
+  }));
+
+  /* ---------------- download ---------------- */
+  function status(t, cls) { ["#status", "#status-top"].forEach(id => { const s = $(id); if (!s) return; s.textContent = t; s.className = "status" + (cls ? " " + cls : ""); }); }
+  let dlNS;
+  const dlReady = (async () => { try { if (window.claude && window.claude.use) dlNS = await window.claude.use("downloads"); } catch {} })();
+  async function download() {
+    const btns = [$("#dl-top"), $("#dl-bottom")];
+    if (!window.JSZip) { status("The zip tool didn't load. Check your connection and reload the page.", "err"); return; }
+    btns.forEach(b => b.disabled = true); status("Packing your files…");
+    try {
+      const root = slug(S.name) + "StreamPack";
+      const zip = new JSZip(), files = buildFiles(S);
+      for (const [p, c] of Object.entries(files)) zip.file(root + "/" + p, c);
+      const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+      const filename = root + ".zip";
+      await dlReady;
+      if (dlNS) {
+        try { await dlNS.save({ filename, data: blob }); status(`Saved ${filename}. Unzip it and open index.html for the OBS steps.`, "ok"); }
+        catch (e) { status(e && e.code === "declined" ? "Download cancelled." : "The download didn't go through. Try again in a moment.", e && e.code === "declined" ? "" : "err"); }
+      } else {
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        status(`Downloading ${filename}. Unzip it and open index.html for the OBS steps.`, "ok");
+      }
+    } catch (e) { status("Something went wrong while packing. Reload the page and try again.", "err"); }
+    btns.forEach(b => b.disabled = false);
+  }
+  $("#dl-top").addEventListener("click", () => { download(); });
+
+  renderForm(); renderKeys(); refresh(true);
+})();
+
+</script>
+</body></html>
