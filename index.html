@@ -178,6 +178,21 @@ textarea { resize: vertical; min-height: 92px; line-height: 1.45; }
 h3.sub { margin: 18px 0 8px; font-size: 15px; font-weight: 700; font-stretch: 105%; }
 .foot { padding: 0 24px 28px; color: var(--muted); font-size: 13px; }
 .only-yt, .only-tw { }
+.linkbtn { appearance: none; border: 0; background: none; padding: 0; color: #9fd0ff; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.keybox { background: var(--ink); border: 1px solid var(--line2); border-radius: 8px; padding: 14px 14px 4px; margin-bottom: 14px; }
+.keybox h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; font-stretch: 105%; }
+.keybox > p { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; }
+.guide { border: 1px solid var(--line); border-radius: 6px; margin: -4px 0 14px; background: var(--panel); }
+.guide summary { cursor: pointer; padding: 8px 12px; font-size: 13.5px; font-weight: 600; color: #9fd0ff; }
+.guide ol { margin: 0; padding: 2px 14px 12px 32px; font-size: 13.5px; color: var(--muted); }
+.guide li { margin-bottom: 6px; }
+.guide li b { color: var(--text); font-weight: 600; }
+.guide a { color: #9fd0ff; }
+.guide code { background: var(--ink); padding: 1px 5px; border-radius: 4px; color: var(--text); font-size: 12.5px; }
+.guide .tipline { margin: 0; padding: 0 14px 12px; font-size: 12.5px; color: var(--muted); }
+.test-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: -4px 0 14px; }
+.test-out { font-size: 13.5px; color: var(--muted); }
+.test-out.ok { color: #8fe3a8; } .test-out.err { color: #ffb4a8; }
 body.tw .only-yt, body.yt .only-tw { display: none !important; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -479,13 +494,15 @@ window.PACK = {
   words: ${litBlock(S.words)},
 ${yt ? `
   // OPTIONAL: live viewer, like and subscriber counts that update by themselves,
-  // and automatic live chat. Paste a free YouTube Data API v3 key and your channel ID.
+  // and automatic live chat. Paste YOUR OWN free YouTube Data API v3 key and channel ID.
+  // Step-by-step instructions: open index.html in this folder > OBS setup.
   // Leave "" to hide the counters.
   youtubeApiKey: ${jsl(preview ? "" : S.youtubeApiKey)},
   channelId: ${jsl(S.channelId)},
 ` : ""}
   // OPTIONAL: real-time alerts (${yt ? "subscribers, members, Super Chats" : "follows, subs, bits, raids"}, tips) through Streamlabs,
-  // shown in this pack's own design. Paste your Streamlabs "Socket API Token".
+  // shown in this pack's own design. Paste your Streamlabs "Socket API Token"
+  // (streamlabs.com > Dashboard > Settings > API Settings > API Tokens).
   // Keep this file private once a token is in it.
   streamlabsSocketToken: ${jsl(preview ? "" : S.streamlabsSocketToken)}${preview ? `,
   counters: ${S.counters && yt}` : ""}
@@ -677,9 +694,12 @@ function indexHTML(S) {
     ? `With a YouTube API key in config.js it finds your stream by itself within about 30 seconds of going live (tick “Refresh browser when scene becomes active” and set Page permissions to “Read access to OBS status information”). Without a key, use the file path <code>chat.html#v=VIDEO_ID</code> with your stream's video ID.`
     : `It opens your Twitch chat straight away using <code>channel</code> in config.js. Twitch changes its chat page now and then; if the skin stops applying, the chat still works, just unstyled.`}</li>
   <li><b>Vertical</b>: use a 1080×1920 canvas (a separate OBS profile, or the Aitum Vertical plugin to stream both at once). Keep important things inside the middle 820 px; phones crop the sides.</li>${yt ? `
-  <li><b>Live viewers, likes and subscribers (optional):</b> create a free YouTube Data API v3 key in Google Cloud Console, then paste it into <code>youtubeApiKey</code> with your <code>channelId</code>. Without a key those boxes stay hidden.</li>` : ""}
-  <li><b>Alerts (optional):</b> in the Streamlabs dashboard open Settings › API Settings › API Tokens and copy your <b>Socket API Token</b> into <code>streamlabsSocketToken</code>. Alerts then appear in this pack's design on Gameplay and Just Chatting. Don't also add Streamlabs' own Alert Box, or alerts will show twice.</li>
-  <li><b>Keep your keys private.</b> Once a key or token is in config.js, don't share this folder. To give the pack to a friend, send it with those two lines empty.</li>
+  <li><b>Live viewers, likes and subscribers (optional):</b> paste your own free key into <code>youtubeApiKey</code> and your Channel ID into <code>channelId</code> in config.js. Without a key those boxes stay hidden.
+    <br><b>Channel ID:</b> sign in to YouTube, open <code>youtube.com/account_advanced</code>, copy the ID that starts with <code>UC</code>.
+    <br><b>API key:</b> (1) open <code>console.cloud.google.com</code> and sign in; (2) project picker › New project › Create; (3) search <b>YouTube Data API v3</b> › Enable; (4) APIs &amp; Services › Credentials › Create credentials › API key; (5) copy the key that starts with <code>AIza</code>; (6) in the key's settings, restrict it to YouTube Data API v3 and leave Application restrictions on None. It's free.</li>` : ""}
+  <li><b>Alerts (optional):</b> log in at <code>streamlabs.com</code> with the account you stream on, open Dashboard › Settings › API Settings › <b>API Tokens</b>, and copy <b>Your Socket API Token</b> into <code>streamlabsSocketToken</code> in config.js. Alerts then appear in this pack's design on Gameplay and Just Chatting. Don't also add Streamlabs' own Alert Box, or alerts will show twice.</li>
+  <li><b>Keep your keys private.</b> Once a key or token is in config.js, don't share this folder. To give the pack to a friend, send it with those two lines empty; they should get their own keys.</li>
+  <li><b>Something not showing?</b> Counters stay hidden until the key and Channel ID are both filled in; viewers and likes appear only while you're live. A new Google key can take a few minutes to start working. After editing config.js, right-click the source in OBS › Refresh.</li>
 </ol>
 <p class="credit">Made with the Stream Pack Builder by SHAHZON.</p>
 
@@ -817,6 +837,7 @@ function previewDoc(S, file) {
           <p>Each scene is a small web page that OBS shows as a <b>Browser source</b>. Overlays have see-through holes where your facecam and game go underneath.</p>
           <p>You set your details once in <b>config.js</b>. While live you only touch <b>live.js</b> (rank, top supporters, goal) and every overlay updates on its own within 5 seconds.</p>
           <p>Alerts come from <b>Streamlabs</b> but show in your pack's design, with your own sound. On YouTube, an optional free API key adds live viewer, like and subscriber counts and finds your live chat by itself.</p>
+          <p>Every streamer uses <b>their own free keys</b>. The <button type="button" class="linkbtn" data-goto="setup">Save &amp; keys</button> tab shows exactly where to get each one, step by step.</p>
           <p>Everything you type here stays in your browser and goes only into the file you download.</p>
         </div></details></div>
       <section class="grp">
@@ -902,7 +923,7 @@ function previewDoc(S, file) {
     <div class="panel" data-panel="alerts">
       <section class="grp">
         <h2>Alert animation</h2>
-        <p class="hint">How new ${yt ? "subscribers, members and Super Chats" : "followers, subs, bits and raids"} appear on Gameplay and Just Chatting. Press the test buttons under the preview.</p>
+        <p class="hint">How new ${yt ? "subscribers, members and Super Chats" : "followers, subs, bits and raids"} appear on Gameplay and Just Chatting. Press the test buttons under the preview. Real alerts during your stream need a free Streamlabs token: see the <button type="button" class="linkbtn" data-goto="setup">Save &amp; keys</button> tab.</p>
         ${opts("alerts.style", [["drop", "Drop in", "bounces down"], ["slide", "Slide", "sweeps across"], ["zoom", "Zoom", "pops out"], ["glitch", "Glitch", "digital jitter"]], "four")}
         <div class="field"><span>Position</span></div>
         ${opts("alerts.position", [["default", "Default"], ["top", "Top"], ["middle", "Middle"], ["bottom", "Bottom"]], "four")}
@@ -976,16 +997,49 @@ function previewDoc(S, file) {
     </div>
 
     <div class="panel" data-panel="setup">
-      <section class="grp">
-        <h2>Automation (optional)</h2>
-        <p class="hint">Skip this now if you like. You can paste these into config.js later.</p>
-        <div class="only-yt">
-          <label class="check"><input type="checkbox" data-k="counters"><span>Show live viewers, likes and subscribers. Needs a free YouTube Data API v3 key from Google Cloud Console.</span></label>
-          <div class="row">${T("youtubeApiKey", "YouTube API key", "AIza…", 'autocomplete="off" spellcheck="false"')}${T("channelId", "Channel ID", "UC…", 'spellcheck="false"')}</div>
-        </div>
-        ${T("streamlabsSocketToken", "Streamlabs Socket API token (for alerts)", "From Streamlabs › Settings › API Settings", 'autocomplete="off" spellcheck="false"')}
-        <p class="warn">Keys and tokens are private. They aren't saved in this page or in settings files, only written into your pack download. Once they're in your pack, don't share the folder or post config.js anywhere.</p>
-      </section>
+    <section class="grp">
+      <h2>Automation (optional)</h2>
+      <p class="hint">Your pack works without any of this. These extras need your own free keys; each takes about 5 minutes. Open the steps under each box.</p>
+
+      <div class="only-yt keybox">
+        <h3>1. YouTube live counts and auto chat</h3>
+        <p>Shows live viewers, likes and subscribers, and opens your live chat by itself.</p>
+        <label class="check"><input type="checkbox" data-k="counters"><span>Show live viewers, likes and subscribers</span></label>
+        ${T("channelId", "Channel ID", "UC… (or paste your channel link)", 'spellcheck="false"')}
+        <details class="guide"><summary>How to find your Channel ID</summary><ol>
+          <li>Sign in to YouTube with your streaming channel.</li>
+          <li>Open <a href="https://www.youtube.com/account_advanced" target="_blank" rel="noopener">youtube.com/account_advanced</a>.</li>
+          <li>Copy the <b>Channel ID</b>. It starts with <code>UC</code> and is 24 characters long. Paste it above.</li>
+        </ol><p class="tipline">No luck? Leave it empty, fill in your <b>Channel handle</b> at the top (like @yourname), add your API key below and press <b>Test my key</b>. It finds the ID for you.</p></details>
+        ${T("youtubeApiKey", "YouTube API key", "AIza…", 'autocomplete="off" spellcheck="false"')}
+        <details class="guide"><summary>How to get a free YouTube API key</summary><ol>
+          <li>Open <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">console.cloud.google.com</a> and sign in with any Google account. Accept the terms if asked. It's free; no card needed.</li>
+          <li>At the top, click the <b>project picker</b> › <b>New project</b>. Name it <code>Stream Pack</code> and press <b>Create</b>. Make sure the new project is selected.</li>
+          <li>In the top search bar type <b>YouTube Data API v3</b>, open it and press <b>Enable</b>.</li>
+          <li>Go to <b>APIs &amp; Services › Credentials</b> › <b>+ Create credentials</b> › <b>API key</b>. If it asks what data you need, pick <b>Public data</b>.</li>
+          <li>Copy the key (it starts with <code>AIza</code>) and paste it above.</li>
+          <li>Recommended: open the key's settings. Under <b>API restrictions</b> choose <b>Restrict key</b>, tick only <b>YouTube Data API v3</b>, and save. Leave <b>Application restrictions</b> on <b>None</b>, because OBS loads the pack from your PC, not a website.</li>
+          <li>Press <b>Test my key</b> below. A new key can take a few minutes to start working.</li>
+        </ol></details>
+        <div class="test-row"><button type="button" class="btn small" id="test-yt">Test my key</button><span class="test-out" id="test-out" role="status" aria-live="polite"></span></div>
+      </div>
+
+      <div class="keybox">
+        <h3><span class="only-yt">2. </span>Alerts with Streamlabs</h3>
+        <p>Pops up <span class="only-yt">new subscribers, members, Super Chats</span><span class="only-tw">follows, subs, bits, raids</span> and tips in your pack's design.</p>
+        ${T("streamlabsSocketToken", "Streamlabs Socket API token", "Long code from Streamlabs", 'autocomplete="off" spellcheck="false"')}
+        <details class="guide"><summary>How to get your Streamlabs token</summary><ol>
+          <li>Open <a href="https://streamlabs.com/" target="_blank" rel="noopener">streamlabs.com</a> and log in with the <b><span class="only-yt">YouTube</span><span class="only-tw">Twitch</span> account you stream on</b>. It's free.</li>
+          <li>Open your <b>Dashboard</b>, then <b>Settings</b> › <b>API Settings</b>.</li>
+          <li>Open the <b>API Tokens</b> tab and copy <b>Your Socket API Token</b> (a long code). Paste it above.</li>
+          <li>For tips: set up your tip page in Streamlabs (Dashboard › Tipping) and share that link with viewers.</li>
+          <li>In OBS, don't also add Streamlabs' own Alert Box, or every alert shows twice.</li>
+        </ol></details>
+      </div>
+
+      <p class="warn">Keys and tokens are private, like passwords. They aren't saved on this page or in settings files, only written into your pack download. Don't share your pack folder or post config.js anywhere. If a key ever leaks, delete it in Google Cloud and make a new one.</p>
+    </section>
+
       <section class="grp">
         <h2>Save and share your look</h2>
         <p class="hint">Save your settings as a file to keep a backup, switch between looks, or give your style to a friend. Keys and tokens are never included.</p>
@@ -1079,6 +1133,8 @@ function previewDoc(S, file) {
         const k = el.dataset.k;
         let v = el.type === "checkbox" ? el.checked : el.tagName === "TEXTAREA" ? el.value.split("\n").map(x => x.trim()).filter(Boolean) : el.value;
         if (el.type === "number" || el.type === "range") v = el.value === "" ? "" : Number(el.value);
+        if (k === "youtubeApiKey" || k === "streamlabsSocketToken") v = v.trim();
+        if (k === "channelId") { const m = v.match(/UC[\w-]{22}/); v = m ? m[0] : v.trim(); }
         set(k, v);
         if (touchable(k)) S.touched[k] = true;
         if (k === "currency") renderLists();
@@ -1098,6 +1154,7 @@ function previewDoc(S, file) {
     F.addEventListener("change", e => { const el = e.target; if (el.dataset.k && (el.tagName === "SELECT" || el.type === "checkbox")) { set(el.dataset.k, el.type === "checkbox" ? el.checked : el.value); changed(); } });
     F.addEventListener("click", e => {
       const b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.goto) { showTab(b.dataset.goto, true); F.scrollIntoView?.({ block: "start" }); return; }
       const grp = b.closest("[data-group]");
       if (b.dataset.tab) return showTab(b.dataset.tab, true);
       if (b.dataset.theme) applyTheme(b.dataset.theme);
@@ -1126,6 +1183,7 @@ function previewDoc(S, file) {
       else if (b.id === "pal-logo") return matchLogo();
       else if (b.id === "preset-save") return savePreset();
       else if (b.id === "dl-bottom") return download();
+      else if (b.id === "test-yt") return testYT();
       else if (b.id === "reset-all") { if (!confirm("Clear everything and start from the example?")) return; S = defaultState(); try { localStorage.removeItem(KEY); } catch {} renderForm(); changed(); return; }
       else return;
       sync(); changed();
@@ -1153,6 +1211,41 @@ function previewDoc(S, file) {
       };
       r.readAsText(f);
     });
+  }
+
+  /* ---------------- check a YouTube key right here ---------------- */
+  async function testYT() {
+    const out = $("#test-out"), btn = $("#test-yt");
+    const say = (t, cls) => { out.textContent = t; out.className = "test-out" + (cls ? " " + cls : ""); };
+    const key = (S.youtubeApiKey || "").trim();
+    let ch = (S.channelId || "").trim();
+    if (!key) return say("Paste your API key first.", "err");
+    if (!/^AIza[\w-]{30,}$/.test(key)) return say("That doesn't look like an API key. It should start with AIza and be about 39 characters.", "err");
+    const handle = (ch.startsWith("@") ? ch : (S.handle || "")).trim();
+    if (!/^UC[\w-]{22}$/.test(ch) && !handle.startsWith("@")) return say("Add your Channel ID (starts with UC), or put your @handle in Channel handle at the top.", "err");
+    btn.disabled = true; say("Checking…");
+    try {
+      const q = /^UC[\w-]{22}$/.test(ch) ? "id=" + encodeURIComponent(ch) : "forHandle=" + encodeURIComponent(handle);
+      const r = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&${q}&key=${encodeURIComponent(key)}`);
+      const d = await r.json();
+      if (d.error) {
+        const why = ((d.error.errors && d.error.errors[0] && d.error.errors[0].reason) || "") + " " + (d.error.message || "");
+        if (/keyInvalid|API key not valid/i.test(why)) say("Google says this key isn't valid. Copy it again from Credentials, with no spaces.", "err");
+        else if (/accessNotConfigured|SERVICE_DISABLED|has not been used|disabled/i.test(why)) say("The key works, but YouTube Data API v3 isn't switched on. Do step 3 (Enable), wait 2 minutes, test again.", "err");
+        else if (/referer|blocked|restricted|API_KEY_/i.test(why)) say("The key is blocked by its restrictions. Set Application restrictions to None and allow YouTube Data API v3 (step 6).", "err");
+        else if (/quota/i.test(why)) say("This key has used up today's free limit. It resets at midnight Pacific time.", "err");
+        else say("Google returned an error: " + (d.error.message || "unknown").slice(0, 140), "err");
+      } else if (!d.items || !d.items.length) {
+        say("The key works, but no channel was found. Check the Channel ID or your @handle.", "err");
+      } else {
+        const it = d.items[0];
+        if (it.id !== S.channelId) { S.channelId = it.id; sync(); save(); }
+        S.counters = true; sync(); changed();
+        const subs = it.statistics && !it.statistics.hiddenSubscriberCount ? ` · ${Number(it.statistics.subscriberCount).toLocaleString(S.locale || "en-IN")} subscribers` : "";
+        say(`It works! Connected to "${it.snippet.title}"${subs}.`, "ok");
+      }
+    } catch { say("Couldn't reach Google. Check your internet and try again.", "err"); }
+    btn.disabled = false;
   }
 
   function applyTheme(k) {
