@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stream widget</title>
+<!--
+  Stream Widgets by SHAHZON: the widget that runs inside OBS.
+  Every setting comes from the link (#c=...). Make links with the builder: index.html in this folder.
+  Updating this file updates every streamer's widget the next time OBS loads it.
+  Version 1. Old links must keep working, so only ADD new options with defaults (see DEF below).
+-->
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-serif; font-weight: var(--fw); }
+.stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+#fx { position: absolute; inset: 0; pointer-events: none; }
+
+/* ---------- the card every widget is built from ---------- */
+.card { position: absolute; display: flex; align-items: stretch; background: rgb(var(--p-rgb) / var(--po)); color: var(--t);
+  border-radius: var(--r); overflow: hidden; }
+.ico { flex: none; width: var(--h); display: grid; place-items: center; background: linear-gradient(160deg, var(--a), var(--b)); }
+.ico svg { width: 48%; height: 48%; fill: var(--on-a); }
+.noicon .ico { display: none; }
+.body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 0 26px 0 22px; }
+.row { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; }
+.label { font-size: calc(34px * var(--fs)); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tag { display: inline-block; vertical-align: middle; font-size: .5em; line-height: 1; padding: .35em .6em .3em; margin-right: .45em; background: var(--a); color: var(--on-a);
+  border-radius: calc(var(--r) * .35); transform: translateY(-.15em); }
+.count { font-size: calc(44px * var(--fs)); line-height: .9; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.count .of { opacity: .55; font-size: .68em; }
+.money .count { font-size: calc(36px * var(--fs)); }
+.money .label { font-size: calc(30px * var(--fs)); }
+.bar { position: relative; height: 16px; background: rgb(var(--t-rgb) / .13); border-radius: min(var(--r), 8px); overflow: hidden; }
+.bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, var(--b), var(--a)); border-radius: inherit;
+  transition: width .9s cubic-bezier(.2,.8,.2,1); }
+.bar i::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgb(255 255 255 / .45), transparent) no-repeat;
+  background-size: 40% 100%; animation: sweep 2.6s linear infinite; }
+@keyframes sweep { from { background-position: -60% 0; } to { background-position: 160% 0; } }
+.card.hot { animation: hot 1.2s ease-in-out infinite; }
+@keyframes hot { 50% { filter: drop-shadow(0 0 16px rgb(var(--a-rgb) / .8)); } }
+
+/* counters, timer, socials, supporters */
+.stats { flex: 1; display: flex; align-items: center; }
+.stat { flex: 1; min-width: 0; padding: 0 22px; }
+.stat + .stat { border-left: 2px solid rgb(var(--t-rgb) / .14); }
+.num { display: block; font-size: calc(50px * var(--fs)); line-height: .95; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab { display: block; font-size: calc(21px * var(--fs)); line-height: 1.1; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+.stat .mini { display: inline-block; width: .62em; height: .62em; margin-right: .18em; fill: var(--a); vertical-align: -.02em; }
+.amt { flex: none; align-self: center; margin-right: 26px; font-size: calc(40px * var(--fs)); color: var(--a); white-space: nowrap; }
+.rot { transition: opacity .4s ease, transform .4s ease; }
+.rot.out { opacity: 0; transform: translateY(10px); }
+.card.pop { animation: pop .7s cubic-bezier(.3,1.6,.5,1); }
+@keyframes pop { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+/* ---------- celebration ---------- */
+.flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.bolt { position: absolute; width: 130px; height: 176px; left: 50%; top: -10px; margin-left: -65px; opacity: 0; pointer-events: none; }
+.bolt path { fill: #fff; filter: drop-shadow(0 0 12px var(--a)) drop-shadow(0 0 28px var(--b)); }
+.banner { position: absolute; left: 0; right: 0; top: 18px; text-align: center; opacity: 0; pointer-events: none; line-height: .9; }
+.banner .big { font-size: calc(84px * var(--fs)); color: var(--t); text-shadow: 4px 4px 0 var(--a), 8px 8px 0 rgb(0 0 0 / .85); white-space: nowrap; }
+.banner .small { display: inline-block; margin-top: 10px; font-size: calc(26px * var(--fs)); padding: 6px 16px 4px; background: var(--b); color: var(--on-b);
+  border-radius: min(var(--r), 10px); }
+.celebrate .banner { animation: banner 3.8s cubic-bezier(.2,1.4,.4,1) forwards; }
+.celebrate .card { animation: slam .6s cubic-bezier(.3,1.6,.5,1), shake .5s .1s; }
+.celebrate .bar i { background: linear-gradient(90deg, var(--a), var(--b)); }
+.thunder.celebrate .flash { animation: flash .7s ease-out; }
+.thunder.celebrate .bolt { animation: bolt .55s steps(1) 2; }
+@keyframes flash { 0% { opacity: .85; } 100% { opacity: 0; } }
+@keyframes bolt { 0% { opacity: 1; } 30% { opacity: 0; } 50% { opacity: 1; } 70% { opacity: 0; } }
+@keyframes slam { 0% { transform: scale(1.1); } 100% { transform: scale(1); } }
+@keyframes shake { 20%, 60% { translate: -6px 2px; } 40%, 80% { translate: 6px -2px; } }
+@keyframes banner { 0% { opacity: 0; transform: scale(2) rotate(-3deg); } 12% { opacity: 1; transform: scale(1) rotate(-3deg); }
+  80% { opacity: 1; transform: scale(1.04) rotate(-3deg); } 100% { opacity: 0; transform: translateY(-24px) rotate(-3deg); } }
+.next-pop { display: inline-block; animation: nextpop .6s cubic-bezier(.3,1.7,.5,1); }
+@keyframes nextpop { 0% { transform: scale(1.5); color: var(--b); } 100% { transform: scale(1); } }
+.status { position: absolute; right: 0; bottom: 4px; font: 600 15px system-ui, sans-serif; color: rgb(255 255 255 / .75);
+  background: rgb(0 0 0 / .55); padding: 3px 8px; border-radius: 4px; display: none; }
+.status.on { display: block; }
+
+/* =================== SKINS =================== */
+/* Blade: angled esports card */
+[data-skin=blade] { --r: 0px; }
+[data-skin=blade] .card { clip-path: polygon(0 0, 100% 0, 100% 72%, calc(100% - 26px) 100%, 0 100%); box-shadow: inset 0 0 0 2px rgb(var(--a-rgb) / .55); }
+[data-skin=blade] .card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; z-index: 1; background: linear-gradient(90deg, var(--a), var(--b), var(--a)); }
+[data-skin=blade] .ico { clip-path: polygon(0 0, 100% 0, 82% 100%, 0 100%); }
+[data-skin=blade] .ico svg { transform: translateX(-6%); }
+[data-skin=blade] .label, [data-skin=blade] .count, [data-skin=blade] .num, [data-skin=blade] .banner { font-style: italic; }
+[data-skin=blade] .bar { transform: skewX(-18deg); }
+[data-skin=blade] .banner .small { transform: skewX(-12deg); }
+
+/* Neon: glowing outline */
+[data-skin=neon] { --r: 16px; }
+[data-skin=neon] .card { border: 2px solid var(--a); box-shadow: 0 0 18px rgb(var(--a-rgb) / .55), inset 0 0 16px rgb(var(--a-rgb) / .22); }
+[data-skin=neon] .ico { background: transparent; border-right: 2px solid rgb(var(--a-rgb) / .45); }
+[data-skin=neon] .ico svg { fill: var(--a); filter: drop-shadow(0 0 8px var(--a)); }
+[data-skin=neon] .count, [data-skin=neon] .num { text-shadow: 0 0 16px rgb(var(--a-rgb) / .85); }
+[data-skin=neon] .bar i { box-shadow: 0 0 14px var(--a); }
+[data-skin=neon] .banner .big { text-shadow: 0 0 10px var(--a), 0 0 30px var(--a), 3px 3px 0 rgb(0 0 0 / .8); }
+
+/* Glass: frosted and soft */
+[data-skin=glass] { --r: 26px; }
+[data-skin=glass] .card { background: rgb(var(--p-rgb) / calc(var(--po) * .7)); backdrop-filter: blur(16px); border: 1px solid rgb(255 255 255 / .24);
+  box-shadow: 0 12px 34px rgb(0 0 0 / .3), inset 0 1px 0 rgb(255 255 255 / .25); }
+[data-skin=glass] .ico { width: calc(var(--h) - 28px); margin: 14px 0 14px 14px; border-radius: 50%; }
+[data-skin=glass] .bar { height: 12px; }
+
+/* Pixel: retro blocks */
+[data-skin=pixel] { --r: 0px; }
+[data-skin=pixel] .card { border: 4px solid #000; box-shadow: 6px 6px 0 #000; }
+[data-skin=pixel] .ico { border-right: 4px solid #000; background: var(--a); }
+[data-skin=pixel] .bar { height: 22px; border: 3px solid #000; background: rgb(0 0 0 / .35); }
+[data-skin=pixel] .bar i { background: repeating-linear-gradient(90deg, var(--a) 0 14px, transparent 14px 18px); transition-timing-function: steps(8); }
+[data-skin=pixel] .bar i::after { display: none; }
+[data-skin=pixel] .banner .big { text-shadow: 5px 5px 0 #000; }
+[data-skin=pixel] .banner .small { border: 3px solid #000; }
+
+/* Clean: simple and flat */
+[data-skin=clean] { --r: 12px; }
+[data-skin=clean] .card { box-shadow: 0 8px 24px rgb(0 0 0 / .28); }
+[data-skin=clean] .ico { background: transparent; }
+[data-skin=clean] .ico svg { fill: var(--a); }
+[data-skin=clean] .bar { height: 10px; }
+[data-skin=clean] .bar i { background: var(--a); }
+[data-skin=clean] .banner .big { text-shadow: 0 4px 18px rgb(0 0 0 / .5); }
+
+/* Cozy: round and pastel */
+[data-skin=cozy] { --r: 999px; }
+[data-skin=cozy] .card { box-shadow: 0 10px 28px rgb(var(--a-rgb) / .28); border: 3px solid rgb(var(--a-rgb) / .5); }
+[data-skin=cozy] .ico { width: calc(var(--h) - 24px); margin: 12px 0 12px 12px; border-radius: 50%; }
+[data-skin=cozy] .body { padding-right: 40px; }
+[data-skin=cozy] .bar { height: 18px; border-radius: 99px; }
+[data-skin=cozy] .tag { border-radius: 99px; }
+[data-skin=cozy] .banner .big { text-shadow: 0 0 0 transparent, 4px 4px 0 var(--b); }
+[data-skin=cozy] .banner .small { border-radius: 99px; }
+
+/* Terminal: hacker console */
+[data-skin=terminal] { --r: 4px; }
+[data-skin=terminal] .card { border: 1px solid var(--a); }
+[data-skin=terminal] .card::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgb(0 0 0 / .22) 0 2px, transparent 2px 4px); }
+[data-skin=terminal] .ico { background: transparent; border-right: 1px dashed rgb(var(--a-rgb) / .55); }
+[data-skin=terminal] .ico svg { fill: var(--a); }
+[data-skin=terminal] .label::before, [data-skin=terminal] .lab::before { content: "> "; color: var(--a); }
+[data-skin=terminal] .bar { border-radius: 0; height: 18px; border: 1px solid rgb(var(--a-rgb) / .6); background: transparent; }
+[data-skin=terminal] .bar i { border-radius: 0; background: repeating-linear-gradient(90deg, var(--a) 0 10px, transparent 10px 13px); }
+[data-skin=terminal] .bar i::after { display: none; }
+[data-skin=terminal] .count, [data-skin=terminal] .num { color: var(--a); text-shadow: 0 0 10px rgb(var(--a-rgb) / .6); }
+[data-skin=terminal] .banner .big { text-shadow: 3px 0 0 var(--b), -3px 0 0 var(--a); }
+
+@media (prefers-reduced-motion: reduce) { .bar i::after, .card.hot { animation: none; } }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <canvas id="fx"></canvas>
+  <div class="flash"></div>
+  <svg class="bolt" viewBox="0 0 140 190" aria-hidden="true"><path d="M78 0 20 104h40L34 190 120 72H76L104 0z"/></svg>
+  <div id="root"></div>
+  <div class="banner" id="banner"><div class="big" id="bBig"></div><div class="small" id="bSmall"></div></div>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  /* ================= defaults: every option a link can carry =================
+     New options get a default here, so links made before the option existed keep working. */
+  const DEF = {
+    v: 1, type: "likes", platform: "youtube", handle: "", ch: "", poll: 20, locale: "en-IN",
+    look: { skin: "neon", font: "orbitron", a: "#00e5ff", b: "#b14dff", t: "#ffffff", p: "#0a0718", po: .85, icon: true },
+    fx: { style: "sparks", banner: true, sound: "chime", vol: .6, url: "" },
+    w: {
+      likes:   { label: "LIKE GOAL", start: 100, step: 100, big: "{goal} LIKES!", small: "Goal smashed! Next: {next}", hot: true },
+      subs:    { label: "SUB GOAL", start: 1000, step: 100, exact: "", big: "{goal} SUBS!", small: "Welcome to the family! Next: {next}", hot: true },
+      tips:    { tag: "TIP GOAL", title: "New mic", goal: 5000, step: 0, raised: 0, cur: "₹", tips: true, superchats: true, bits: false,
+                 big: "GOAL REACHED!", small: "Thank you so much", hot: true },
+      viewers: { label: "Watching", likes: true, likesLabel: "Likes" },
+      timer:   { mode: "uptime", label: "Live for", minutes: 10, at: "21:00", done: "Starting now" },
+      socials: { secs: 5, items: [
+        { icon: "camera", label: "INSTAGRAM", value: "@yourname" },
+        { icon: "chat", label: "DISCORD", value: "discord.gg/yourname" },
+        { icon: "coin", label: "TIP / UPI", value: "yourname@upi" } ] },
+      supporter: { secs: 6, sub: true, tip: true, top: true, subLabel: "Latest sub", tipLabel: "Latest tip", topLabel: "Top tip" }
+    }
+  };
+  const SIZE = { likes: [800, 300], subs: [800, 300], tips: [800, 300], viewers: [560, 150], timer: [560, 150], socials: [760, 150], supporter: [800, 160] };
+  const FONTS = {
+    orbitron: ["Orbitron", "Orbitron:wght@700;800", 800, .8], teko: ["Teko", "Teko:wght@500;600;700", 600, 1.18],
+    rajdhani: ["Rajdhani", "Rajdhani:wght@600;700", 700, 1.02], archivo: ["Archivo", "Archivo:wdth,wght@100,700;100,800", 800, .86],
+    fredoka: ["Fredoka", "Fredoka:wght@500;600;700", 600, .92], bungee: ["Bungee", "Bungee", 400, .74],
+    pixelify: ["Pixelify Sans", "Pixelify+Sans:wght@500;700", 700, .9], anton: ["Anton", "Anton", 400, .96],
+    mono: ["Share Tech Mono", "Share+Tech+Mono", 400, .88], nunito: ["Nunito", "Nunito:wght@800;900", 900, .9]
+  };
+  const ICONS = {
+    like: "M2 10h4v12H2zM22 11.5c0-1.1-.9-2-2-2h-6.3l.9-4.6c0-.4-.2-.8-.4-1.1L13.1 2.5 7.6 8c-.4.4-.6.9-.6 1.4V20c0 1.1.9 2 2 2h9c.8 0 1.5-.5 1.8-1.2l3-7c.1-.3.2-.5.2-.8z",
+    bell: "M12 22a2.5 2.5 0 0 0 2.5-2.5h-5A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 0 0-5.5-6.8V3a1.5 1.5 0 0 0-3 0v1.2A7 7 0 0 0 5 11v5l-2 2v1h18v-1z",
+    coin: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15.9V19h-2v-1.1c-1.8-.3-3.2-1.4-3.3-3.2h2c.1.9.8 1.5 2.3 1.5 1.6 0 2-.8 2-1.3 0-.7-.4-1.3-2.3-1.8-2.1-.5-3.6-1.4-3.6-3.2 0-1.5 1.2-2.6 2.9-2.9V5h2v1.1c1.7.4 2.6 1.7 2.7 3.1h-2c-.1-.9-.6-1.5-1.9-1.5-1.3 0-2 .6-2 1.4 0 .7.6 1.2 2.3 1.6 1.8.5 3.6 1.2 3.6 3.4 0 1.6-1.2 2.5-2.7 2.8z",
+    eye: "M12 5C6.5 5 2.7 8.6 1 12c1.7 3.4 5.5 7 11 7s9.3-3.6 11-7c-1.7-3.4-5.5-7-11-7zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9zm0-7a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z",
+    clock: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 10.4 4 2.4-.8 1.4-5.2-3.1V6h2z",
+    star: "m12 2 3 6.6 7.2.8-5.4 4.9 1.5 7.1L12 17.8l-6.3 3.6 1.5-7.1L1.8 9.4 9 8.6z",
+    heart: "M12 21.4 10.6 20C5.4 15.4 2 12.3 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.8-3.4 6.9-8.6 11.5z",
+    camera: "M9 3 7.2 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3zm3 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+    chat: "M4 3h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 1-2zm3 7a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z",
+    play: "M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4a2.5 2.5 0 0 0-1.8 1.8C2 8.8 2 12 2 12s0 3.2.4 4.8a2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8c.4-1.6.4-4.8.4-4.8s0-3.2-.4-4.8zM10 15V9l5.2 3z",
+    globe: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-2.9a15.7 15.7 0 0 0-1.4-3.6A8 8 0 0 1 18.9 8zM12 4c.8 1.2 1.5 2.5 1.9 4h-3.8c.4-1.5 1.1-2.8 1.9-4zM4.3 14a8.2 8.2 0 0 1 0-4h3.4a16.5 16.5 0 0 0 0 4zm.8 2h2.9c.3 1.3.8 2.5 1.4 3.6A8 8 0 0 1 5.1 16zM8 8H5.1a8 8 0 0 1 4.3-3.6C8.8 5.5 8.3 6.7 8 8zm4 12c-.8-1.2-1.5-2.5-1.9-4h3.8c-.4 1.5-1.1 2.8-1.9 4zm2.3-6H9.7a14.7 14.7 0 0 1 0-4h4.6a14.7 14.7 0 0 1 0 4zm.3 5.6c.6-1.1 1.1-2.3 1.4-3.6h2.9a8 8 0 0 1-4.3 3.6zm1.7-5.6a16.5 16.5 0 0 0 0-4h3.4a8.2 8.2 0 0 1 0 4z",
+    at: "M12 2a10 10 0 1 0 5 18.7l-1-1.7A8 8 0 1 1 20 12v1.2c0 .9-.7 1.8-1.6 1.8s-1.4-.9-1.4-1.8V12a5 5 0 1 0-1.5 3.6 3.4 3.4 0 0 0 2.9 1.4c2 0 3.6-1.7 3.6-3.8V12A10 10 0 0 0 12 2zm0 13a3 3 0 1 1 0-6 3 3 0 0 1 0 6z",
+    rupee: "M6 3h12v2h-3.3c.5.6.9 1.3 1.1 2H18v2h-2.2c-.5 2.6-2.7 4.4-5.6 4.6L16.6 21h-2.8l-6.3-7.4V12h2.5c1.7 0 3.1-.9 3.5-3H6V7h7.2c-.5-1.2-1.6-2-3.2-2H6z",
+    controller: "M7 6h10a5 5 0 0 1 4.9 6l-1 4.6a2.7 2.7 0 0 1-4.6 1.3L14 15.5h-4l-2.3 2.4a2.7 2.7 0 0 1-4.6-1.3l-1-4.6A5 5 0 0 1 7 6zm1 3v2H6v2h2v2h2v-2h2v-2h-2V9zm8.5 1a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zm-2 2.6a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4z",
+    bolt: "M13 2 4 14h6l-1 8 9-12h-6z"
+  };
+  const svg = (n, cls) => `<svg ${cls ? `class="${cls}" ` : ""}viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n] || ICONS.star}"/></svg>`;
+
+  /* ================= read the link ================= */
+  const H = new URLSearchParams(location.hash.slice(1));
+  const DEMO = H.has("demo");
+  const KEY = (H.get("k") || "").trim(), TOKEN = (H.get("t") || "").trim();
+  const merge = (d, v) => {
+    if (Array.isArray(d)) return Array.isArray(v) ? v : d;
+    if (d && typeof d === "object") { const o = { ...d }; if (v && typeof v === "object") for (const k in v) o[k] = k in d ? merge(d[k], v[k]) : v[k]; return o; }
+    return v === undefined || v === null ? d : v;
+  };
+  let raw = {};
+  try { const s = (H.get("c") || "").replace(/-/g, "+").replace(/_/g, "/"); raw = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s), c => c.charCodeAt(0)))); } catch {}
+  const C = merge(DEF, raw);
+  const TYPE = SIZE[C.type] ? C.type : "likes";
+  const W = C.w[TYPE], L = C.look;
+  const TWITCH = C.platform === "twitch";
+  addEventListener("hashchange", () => location.reload());
+
+  const $ = id => document.getElementById(id);
+  const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const nf = n => Number(n).toLocaleString(C.locale || "en-IN", { maximumFractionDigits: 2 });
+  const fill = (t, o) => String(t || "").replace(/\{(\w+)\}/g, (m, k) => (k in o ? o[k] : m));
+
+  /* ================= look ================= */
+  const hexRgb = h => { h = String(h || "#fff").replace("#", ""); if (h.length === 3) h = [...h].map(c => c + c).join(""); const n = parseInt(h, 16) || 0; return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  const onColor = h => { const [r, g, b] = hexRgb(h).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b > .45 ? "#000000" : "#ffffff"; };
+  const F = FONTS[L.font] || FONTS.orbitron;
+  const root = document.documentElement.style;
+  [["a", L.a], ["b", L.b], ["t", L.t], ["p", L.p]].forEach(([k, v]) => { root.setProperty("--" + k, v); root.setProperty(`--${k}-rgb`, hexRgb(v).join(" ")); });
+  root.setProperty("--on-a", onColor(L.a)); root.setProperty("--on-b", onColor(L.b));
+  root.setProperty("--po", Math.max(0, Math.min(1, Number(L.po)))); root.setProperty("--font", `"${F[0]}"`); root.setProperty("--fw", F[2]); root.setProperty("--fs", F[3]);
+  document.body.dataset.skin = L.skin;
+  if (C.fx.style === "thunder") document.body.classList.add("thunder");
+  const fl = document.createElement("link"); fl.rel = "stylesheet"; fl.href = `https://fonts.googleapis.com/css2?family=${F[1]}&display=swap`; document.head.appendChild(fl);
+
+  const [SW, SH] = SIZE[TYPE];
+  const stage = $("stage"), cv = $("fx"), ctx = cv.getContext("2d");
+  stage.style.width = SW + "px"; stage.style.height = SH + "px"; cv.width = SW; cv.height = SH;
+  function fit() { const s = Math.min(innerWidth / SW, innerHeight / SH); stage.style.transform = `translate(${(innerWidth - SW * s) / 2}px, ${(innerHeight - SH * s) / 2}px) scale(${s})`; }
+  addEventListener("resize", fit); fit();
+
+  function card(x, y, w, h, icon, inner) {
+    const el = document.createElement("div");
+    el.className = "card" + (L.icon ? "" : " noicon");
+    Object.assign(el.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" });
+    el.style.setProperty("--h", h + "px");
+    el.innerHTML = `<div class="ico">${svg(icon)}</div>${inner}`;
+    $("root").appendChild(el); return el;
+  }
+
+  /* ================= storage, shared between all widgets in OBS ================= */
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("spw:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem("spw:" + k, JSON.stringify(v)); } catch {} }
+  };
+  const mine = {};
+  const claim = (k, ms) => { const now = Date.now(), last = Math.max(store.get("t:" + k, 0), mine[k] || 0);
+    if (now - last < ms - 500) return false; store.set("t:" + k, now); mine[k] = now; return true; };
+  const status = m => { if (DEMO) m = ""; $("status").textContent = m || ""; $("status").classList.toggle("on", !!m); };
+
+  /* ================= sound, made in code ================= */
+  let ac;
+  function sound(kind) {
+    kind = kind || C.fx.sound; const vol = Math.max(0, Math.min(1, Number(C.fx.vol)));
+    if (!kind || kind === "none" || !vol) return;
+    if (kind === "custom") { if (C.fx.url) try { const a = new Audio(C.fx.url); a.volume = vol; a.play().catch(() => {}); } catch {} return; }
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      const t = ac.currentTime, out = ac.createGain(); out.gain.value = vol; out.connect(ac.destination);
+      const tone = (f, at, dur, type, g = .2, to) => { const o = ac.createOscillator(), e = ac.createGain(); o.type = type; o.frequency.setValueAtTime(f, t + at);
+        if (to) o.frequency.exponentialRampToValueAtTime(to, t + at + dur); e.gain.setValueAtTime(0, t + at); e.gain.linearRampToValueAtTime(g, t + at + .015);
+        e.gain.exponentialRampToValueAtTime(.001, t + at + dur); o.connect(e).connect(out); o.start(t + at); o.stop(t + at + dur + .05); };
+      if (kind === "chime") [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, i * .09, 1.1, "triangle", .22));
+      else if (kind === "coin") { tone(988, 0, .09, "square", .12); tone(1319, .08, .5, "square", .12); }
+      else if (kind === "levelup") [392, 523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, i * .07, .22, "square", .1));
+      else if (kind === "pop") tone(880, 0, .18, "sine", .35, 220);
+      else if (kind === "thunder") {
+        const len = ac.sampleRate * 1.4, buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+        const n = ac.createBufferSource(); n.buffer = buf;
+        const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.setValueAtTime(2400, t); lp.frequency.exponentialRampToValueAtTime(180, t + 1.2);
+        const g = ac.createGain(); g.gain.value = .55; n.connect(lp).connect(g).connect(out); n.start(t);
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, .25 + i * .09, 1.1, "triangle", .16));
+      }
+    } catch {}
+  }
+
+  /* ================= particles ================= */
+  let parts = [], running = false;
+  function burst(x, y) {
+    const style = C.fx.style; if (style === "none") return;
+    const cols = [L.t, L.a, L.b, "#ffd34d"];
+    const n = style === "confetti" ? 140 : style === "hearts" || style === "stars" ? 46 : 170;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, sp = (style === "confetti" ? 5 : 4) + Math.random() * (style === "hearts" || style === "stars" ? 7 : 11);
+      parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (style === "confetti" ? 7 : 3), life: 1, decay: .007 + Math.random() * .012,
+        size: style === "hearts" || style === "stars" ? 9 + Math.random() * 10 : 2 + Math.random() * 4, col: cols[i % 4], rot: Math.random() * 6, vr: (Math.random() - .5) * .3,
+        kind: style === "confetti" ? "rect" : style === "hearts" ? "heart" : style === "stars" ? "star" : Math.random() < .5 ? "streak" : "dot" });
+    }
+    if (!running) { running = true; requestAnimationFrame(tick); }
+  }
+  const shape = (k, s) => { ctx.beginPath();
+    if (k === "heart") { ctx.moveTo(0, s * .35); ctx.bezierCurveTo(-s, -s * .3, -s * .45, -s, 0, -s * .4); ctx.bezierCurveTo(s * .45, -s, s, -s * .3, 0, s * .35); }
+    else { for (let i = 0; i < 10; i++) { const r = i % 2 ? s * .45 : s, a = -Math.PI / 2 + i * Math.PI / 5; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } }
+    ctx.closePath(); ctx.fill(); };
+  function tick() {
+    ctx.clearRect(0, 0, SW, SH);
+    parts = parts.filter(p => p.life > 0);
+    for (const p of parts) {
+      const drag = p.kind === "rect" ? .97 : .985, grav = p.kind === "rect" ? .16 : p.kind === "heart" || p.kind === "star" ? .1 : .22;
+      p.x += p.vx; p.y += p.vy; p.vy += grav; p.vx *= drag; p.life -= p.decay; p.rot += p.vr;
+      ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = ctx.strokeStyle = p.col;
+      if (p.kind === "streak") { ctx.lineWidth = p.size * .7; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 2.5, p.y - p.vy * 2.5); ctx.stroke(); }
+      else if (p.kind === "dot") { ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); }
+      else { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+        if (p.kind === "rect") ctx.fillRect(-p.size, -p.size * 1.6, p.size * 2, p.size * 3.2); else shape(p.kind, p.size);
+        ctx.restore(); }
+    }
+    ctx.globalAlpha = 1;
+    if (parts.length) requestAnimationFrame(tick); else { running = false; ctx.clearRect(0, 0, SW, SH); }
+  }
+
+  /* ================= YouTube (one widget asks, every widget reads) ================= */
+  const api = p => fetch(`https://www.googleapis.com/youtube/v3/${p}&key=${encodeURIComponent(KEY)}`).then(r => r.json());
+  const errText = e => {
+    const why = ((e && e.errors && e.errors[0] && e.errors[0].reason) || "") + " " + ((e && e.message) || "");
+    if (/keyInvalid|API key not valid/i.test(why)) return "YouTube key isn't valid. Make a new link in the builder.";
+    if (/accessNotConfigured|has not been used|disabled/i.test(why)) return "Turn on YouTube Data API v3 in Google Cloud.";
+    if (/quota/i.test(why)) return "Today's free YouTube limit is used up. It resets at midnight Pacific time.";
+    if (/referer|blocked/i.test(why)) return "The key's restrictions block it. Set Application restrictions to None.";
+    return "Can't reach YouTube right now.";
+  };
+  async function channelId() {
+    if (/^UC[\w-]{22}$/.test(C.ch || "")) return C.ch;
+    const h = String(C.handle || "").trim(); if (!h) return null;
+    const c = store.get("ch:" + h, null); if (c) return c;
+    const d = await api(`channels?part=id&forHandle=${encodeURIComponent(h)}`);
+    if (d.error) throw d.error;
+    const id = d.items && d.items[0] && d.items[0].id; if (id) store.set("ch:" + h, id);
+    return id || null;
+  }
+  let lastSearch = store.get("lastSearch", 0);
+  async function findLive(ch) {
+    const pl = await api(`playlistItems?part=contentDetails&playlistId=UU${ch.slice(2)}&maxResults=5`);
+    if (pl.error) throw pl.error;
+    const ids = (pl.items || []).map(i => i.contentDetails.videoId).join(",");
+    if (ids) {
+      const v = await api(`videos?part=liveStreamingDetails&id=${ids}`);
+      const live = (v.items || []).find(i => i.liveStreamingDetails && i.liveStreamingDetails.actualStartTime && !i.liveStreamingDetails.actualEndTime);
+      if (live) return live.id;
+    }
+    lastSearch = Math.max(lastSearch, store.get("lastSearch", 0));
+    if (Date.now() - lastSearch > 15 * 60e3) {           // 100-unit search, at most every 15 minutes
+      lastSearch = Date.now(); store.set("lastSearch", lastSearch);
+      const d = await api(`search?part=id&channelId=${ch}&eventType=live&type=video&maxResults=1`);
+      return (d.items && d.items[0] && d.items[0].id.videoId) || null;
+    }
+    return null;
+  }
+  const streaming = () => new Promise(res => {
+    const o = window.obsstudio; if (!o || !o.getStatus) return res(true);
+    const t = setTimeout(() => res(true), 1500);
+    o.getStatus(st => { clearTimeout(t); res(!!(st && st.streaming)); });
+  });
+  addEventListener("obsStreamingStopped", () => { store.set("vid", null); store.set("live", null); store.set("obsStart", null); });
+  addEventListener("obsStreamingStarted", () => { store.set("obsStart", Date.now()); store.set("sup:top", null); });
+
+  function liveFeed(on) {
+    if (!KEY) return status("Add your YouTube key in the builder");
+    const MS = Math.max(10, Number(C.poll) || 20) * 1000;
+    async function poll() {
+      if (!claim("live", MS)) return;
+      const say = m => store.set("ytmsg", m);
+      try {
+        let vid = H.get("v") || store.get("vid", null);
+        if (!vid) {
+          if (!(await streaming())) return say("Waiting for you to go live");
+          const ch = await channelId(); if (!ch) return say("Channel not found. Check the handle in the builder.");
+          vid = await findLive(ch); if (!vid) return say("Waiting for the stream to go live");
+          store.set("vid", vid);
+        }
+        const d = await api(`videos?part=statistics,liveStreamingDetails&id=${vid}`);
+        if (d.error) return say(errText(d.error));
+        const it = d.items && d.items[0], ls = it && it.liveStreamingDetails;
+        if (!ls || ls.actualEndTime) { store.set("vid", null); return say("Waiting for the stream to go live"); }
+        say("");
+        store.set("live", { at: Date.now(), viewers: ls.concurrentViewers != null ? Number(ls.concurrentViewers) : null,
+          likes: it.statistics && it.statistics.likeCount != null ? Number(it.statistics.likeCount) : null, start: ls.actualStartTime || null });
+      } catch (e) { say(errText(e)); }
+    }
+    poll(); setInterval(poll, 4000);
+    const read = () => { const s = store.get("live", null); if (s && Date.now() - s.at < MS * 3) { status(""); on(s); } else status(store.get("ytmsg", "") || ""); };
+    read(); setInterval(read, 1500);
+  }
+  function subsFeed(on) {
+    if (!KEY) return status("Add your YouTube key in the builder");
+    async function poll() {
+      if (!claim("subs", 60e3)) return;
+      try { const ch = await channelId(); if (!ch) return store.set("subsmsg", "Channel not found. Check the handle in the builder.");
+        const d = await api(`channels?part=statistics&id=${ch}`); if (d.error) return store.set("subsmsg", errText(d.error));
+        const st = d.items && d.items[0] && d.items[0].statistics;
+        if (st && st.hiddenSubscriberCount) return store.set("subsmsg", "Your subscriber count is hidden on YouTube.");
+        if (st) { store.set("subsmsg", ""); store.set("subs", Number(st.subscriberCount)); }
+      } catch (e) { store.set("subsmsg", errText(e)); }
+    }
+    poll(); setInterval(poll, 5000);
+    const read = () => { const n = store.get("subs", null); status(store.get("subsmsg", "")); if (n != null) on(n); };
+    read(); setInterval(read, 2000);
+  }
+
+  /* ================= Streamlabs: live events ================= */
+  function streamlabs(on) {
+    if (!TOKEN || DEMO) return;
+    const go = () => {
+      const socket = io(`https://sockets.streamlabs.com?token=${encodeURIComponent(TOKEN)}`, { transports: ["websocket"] });
+      socket.on("event", ev => {
+        if (!ev || !ev.message) return;
+        (Array.isArray(ev.message) ? ev.message : [ev.message]).forEach(m => {
+          const id = String(m._id || m.id || m.event_id || ""), name = m.name || m.from || m.display_name || "Someone";
+          const num = s => parseFloat(String(s || "").replace(/[^0-9.]/g, "")) || 0;
+          let e = null;
+          if (ev.type === "follow") e = { kind: "sub", name };
+          else if (ev.type === "subscription" || ev.type === "resub") e = { kind: "member", name };
+          else if (ev.type === "donation") e = { kind: "tip", name, amount: Number(m.amount) || num(m.formatted_amount), display: m.formatted_amount || "" };
+          else if (ev.type === "superchat") e = { kind: "superchat", name, amount: num(m.displayString), display: m.displayString || "" };
+          else if (ev.type === "bits") e = { kind: "bits", name, amount: Number(m.amount) || 0, display: (m.amount || "") + " bits" };
+          if (e) { e.id = id || e.kind + ":" + name + ":" + Math.floor(Date.now() / 30e3); on(e); }
+        });
+      });
+    };
+    if (window.io) return go();
+    const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.5.0/socket.io.js"; s.onload = go; document.head.appendChild(s);
+  }
+
+  /* ================= celebration ================= */
+  let celebrating = false;
+  function celebrate(big, small, x, y, after) {
+    celebrating = true;
+    $("bBig").textContent = big; $("bSmall").textContent = small; $("bSmall").hidden = !small;
+    $("banner").style.display = C.fx.banner ? "" : "none";
+    stage.classList.remove("celebrate"); void stage.offsetWidth; stage.classList.add("celebrate");
+    burst(x, y); sound();
+    setTimeout(() => { stage.classList.remove("celebrate"); celebrating = false; after && after(); }, 4200);
+  }
+
+  /* ================= widget: goals (likes, subs, tips) ================= */
+  function goal() {
+    const tips = TYPE === "tips";
+    const START = Math.max(1, Number(tips ? W.goal : W.start) || 100), STEP = Math.max(0, Number(W.step) || 0);
+    const label = tips ? `${W.tag ? `<span class="tag">${esc(W.tag)}</span>` : ""}${esc(W.title)}` : esc(W.label);
+    const el = card(80, 160, 640, 116, TYPE === "likes" ? "like" : TYPE === "subs" ? "bell" : "coin",
+      `<div class="body"><div class="row"><span class="label">${label}</span>
+        <span class="count"><span id="cur">0</span> <span class="of">/ <span id="goal"></span></span></span></div>
+        <div class="bar"><i id="bar"></i></div></div>`);
+    if (tips) el.classList.add("money");
+    const money = n => tips ? (W.cur || "") + nf(n) : nf(n);
+    const above = n => STEP <= 0 ? START : n < START ? START : START + (Math.floor((n - START) / STEP) + 1) * STEP;
+    let shown = 0, g = START, prev = 0, latest = 0, ready = false, a0 = 0, aFrom = 0, aTo = 0;
+    const countTo = n => { aFrom = shown; aTo = n; a0 = performance.now(); requestAnimationFrame(function s(now) {
+      const p = Math.min(1, (now - a0) / 800), e = 1 - Math.pow(1 - p, 3); shown = aFrom + (aTo - aFrom) * e;
+      $("cur").textContent = money(p < 1 ? Math.round(shown) : aTo); if (p < 1) requestAnimationFrame(s); }); };
+    function render(n) {
+      const pct = Math.max(0, Math.min(100, ((n - prev) / (g - prev)) * 100));
+      $("bar").style.width = pct + "%"; $("goal").textContent = money(g);
+      el.classList.toggle("hot", !!W.hot && pct >= 85 && pct < 100);
+      countTo(n);
+    }
+    function party(reached, next) {
+      $("bar").style.width = "100%"; el.classList.remove("hot");
+      celebrate(fill(W.big, { goal: money(reached), next: money(next), n: money(latest) }), fill(STEP > 0 ? W.small : W.small.replace(/\s*Next:\s*\{next\}/i, ""), { goal: money(reached), next: money(next), n: money(latest) }),
+        400, 218, () => {
+          if (STEP <= 0) { prev = 0; g = START; render(latest); return; }
+          prev = reached; g = next;
+          const gl = $("goal"); gl.classList.remove("next-pop"); void gl.offsetWidth; gl.classList.add("next-pop");
+          $("bar").style.transition = "none"; $("bar").style.width = "0%"; void $("bar").offsetWidth; $("bar").style.transition = "";
+          update(latest);
+        });
+    }
+    let done = false;
+    function update(n) {
+      latest = n;
+      if (celebrating) return countTo(n);
+      if (!ready) { ready = true; g = above(n); prev = STEP > 0 ? Math.max(0, g - STEP) : 0; if (g === START) prev = 0; done = STEP <= 0 && n >= START; return render(n); }
+      if (n >= g && !(STEP <= 0 && done)) { done = STEP <= 0; countTo(n); return party(g, above(n)); }
+      render(n);
+    }
+    addEventListener("message", e => { if (e.data && e.data.spw === "celebrate" && !celebrating) { countTo(g); party(g, STEP > 0 ? g + STEP : g); } });
+
+    if (DEMO) {
+      let n = tips ? Math.max(0, START * .78) : START - 14; update(n);
+      setInterval(() => { n += tips ? 50 + Math.round(Math.random() * 6) * 50 : 1 + Math.floor(Math.random() * 4); if (tips && n > START * 1.4) { n = START * .78; ready = false; done = false; } update(n); }, tips ? 1500 : 900);
+      return;
+    }
+    if (TYPE === "likes") { if (TWITCH) return status("Like goal works with YouTube only"); return liveFeed(s => s.likes != null && update(s.likes)); }
+    if (TYPE === "subs") {
+      if (TWITCH) return status("Sub goal works with YouTube only");
+      // exact count: YouTube rounds big numbers, so Streamlabs follows are added on top
+      const exact = String(W.exact ?? "").trim() === "" ? null : Number(W.exact);
+      let st = store.get("subx", null);
+      if (!st || st.exact !== exact) st = { exact, api: null, ids: [] };
+      const value = () => { const ex = st.exact != null ? st.exact + st.ids.length : null, ap = st.api != null ? st.api + (st.exact == null ? st.ids.length : 0) : null;
+        return ex != null && ap != null ? Math.max(ex, ap) : ex ?? ap; };
+      const save = () => { store.set("subx", st); const v = value(); if (v != null) update(v); };
+      if (exact != null) save();
+      streamlabs(e => { if (e.kind === "sub" && !st.ids.includes(e.id)) { st = store.get("subx", st); st.ids = [...st.ids, e.id].slice(-500); save(); } });
+      return subsFeed(n => { st = store.get("subx", st); if (st.api !== n) { if (st.exact == null) st.ids = []; st.api = n; } save(); });
+    }
+    // tips
+    if (!TOKEN) status("Add your Streamlabs token in the builder");
+    const base = Number(W.raised) || 0;
+    let st = store.get("tipx", null);
+    if (!st || st.base !== base || st.goal !== START) st = { base, goal: START, added: 0, ids: [] };
+    const save = () => { store.set("tipx", st); update(st.base + st.added); };
+    save();
+    setInterval(() => { const s = store.get("tipx", st); if (s.added !== st.added) { st = s; update(st.base + st.added); } }, 2000);
+    streamlabs(e => {
+      const ok = (e.kind === "tip" && W.tips) || (e.kind === "superchat" && W.superchats) || (e.kind === "bits" && W.bits);
+      if (!ok || !e.amount) return;
+      st = store.get("tipx", st); if (st.ids.includes(e.id)) return;
+      st.ids = [...st.ids, e.id].slice(-500); st.added = Math.round((st.added + (e.kind === "bits" ? e.amount / 100 : e.amount)) * 100) / 100; save();
+    });
+  }
+
+  /* ================= widget: live viewers (+ likes) ================= */
+  function viewers() {
+    const both = !!W.likes;
+    card(20, 20, 520, 110, "eye", `<div class="stats">
+      <div class="stat"><span class="lab">${esc(W.label)}</span><span class="num" id="vv">0</span></div>
+      ${both ? `<div class="stat"><span class="lab">${esc(W.likesLabel)}</span><span class="num">${svg("like", "mini")}<span id="vl">0</span></span></div>` : ""}</div>`);
+    const show = s => { if (s.viewers != null) $("vv").textContent = nf(s.viewers); if (both && s.likes != null) $("vl").textContent = nf(s.likes); };
+    if (DEMO) { let v = 1248, l = 386; show({ viewers: v, likes: l }); setInterval(() => { v = Math.max(0, v + Math.round((Math.random() - .45) * 30)); l += Math.random() < .6 ? 1 + Math.floor(Math.random() * 3) : 0; show({ viewers: v, likes: l }); }, 2000); return; }
+    if (TWITCH) return status("Viewer counter works with YouTube only");
+    addEventListener("obsStreamingStopped", () => show({ viewers: 0, likes: 0 }));
+    liveFeed(show);
+  }
+
+  /* ================= widget: stream timer / countdown ================= */
+  function timer() {
+    const mode = W.mode;
+    card(20, 20, 520, 110, "clock", `<div class="body" style="gap:2px"><span class="lab">${esc(W.label)}</span><span class="num" id="tt">0:00</span></div>`);
+    const two = n => String(n).padStart(2, "0");
+    const hms = s => { s = Math.max(0, Math.floor(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return (h ? h + ":" + two(m) : m) + ":" + two(s % 60); };
+    const loaded = Date.now();
+    let ytStart = null;
+    function target() {
+      if (mode === "minutes") return loaded + (Number(W.minutes) || 10) * 60e3;
+      const [h, m] = String(W.at || "21:00").split(":").map(Number), d = new Date(); d.setHours(h || 0, m || 0, 0, 0);
+      if (d.getTime() < Date.now() - 6 * 3600e3) d.setDate(d.getDate() + 1);   // if that time was long ago, it means tomorrow
+      return d.getTime();
+    }
+    const T = mode === "uptime" ? 0 : target();
+    if (mode === "uptime" && !DEMO) {
+      if (KEY && !TWITCH) liveFeed(s => { if (s.start) ytStart = Date.parse(s.start); });
+      streaming().then(on => { if (on && !store.get("obsStart", null)) store.set("obsStart", Date.now()); });
+    }
+    const demoStart = Date.now() - (3600 + 754) * 1000;
+    setInterval(function draw() {
+      if (mode === "uptime") {
+        const start = DEMO ? demoStart : ytStart || store.get("obsStart", null) || loaded;
+        $("tt").textContent = hms((Date.now() - start) / 1000);
+      } else {
+        const left = (T - Date.now()) / 1000;
+        $("tt").textContent = left > 0 ? hms(Math.ceil(left)) : W.done || "0:00";
+      }
+      return draw;
+    }(), 250);
+  }
+
+  /* ================= widget: socials rotator ================= */
+  function socials() {
+    const items = (W.items || []).filter(i => i && String(i.value || "").trim());
+    const el = card(20, 20, 720, 110, (items[0] && items[0].icon) || "at", `<div class="body rot" id="sb" style="gap:2px"><span class="lab" id="sl"></span><span class="num" id="sv"></span></div>`);
+    if (!items.length) { $("sl").textContent = "Add your links in the builder"; return; }
+    let i = 0;
+    const show = () => { const it = items[i % items.length]; $("sl").textContent = it.label || ""; $("sv").textContent = it.value; el.querySelector(".ico").innerHTML = svg(it.icon || "at"); };
+    show();
+    if (items.length > 1) setInterval(() => { const b = $("sb"), ic = el.querySelector(".ico"); b.classList.add("out"); ic.classList.add("rot", "out");
+      setTimeout(() => { i++; show(); b.classList.remove("out"); el.querySelector(".ico").classList.remove("out"); }, 420); }, Math.max(2, Number(W.secs) || 5) * 1000);
+  }
+
+  /* ================= widget: supporters (latest sub, latest tip, top tip) ================= */
+  function supporter() {
+    const el = card(20, 20, 760, 120, "star", `<div class="body rot" id="pb" style="gap:2px"><span class="lab" id="pl"></span><span class="num" id="pn"></span></div><span class="amt rot" id="pa"></span>`);
+    const kinds = ["sub", "tip", "top"].filter(k => W[k]);
+    const ico = { sub: TWITCH ? "heart" : "bell", tip: "coin", top: "star" };
+    let data = { sub: store.get("sup:sub", null), tip: store.get("sup:tip", null), top: store.get("sup:top", null) };
+    if (DEMO) data = { sub: { name: "Rohit_OP" }, tip: { name: "Simran", display: (C.w.tips.cur || "₹") + "199" }, top: { name: "GhostAkm", display: (C.w.tips.cur || "₹") + "1,000", amount: 1000 } };
+    let order = kinds, i = 0;
+    function show(k) {
+      const d = data[k];
+      $("pl").textContent = W[k + "Label"] || "";
+      $("pn").textContent = d ? d.name : "Be the first!";
+      $("pa").textContent = d && k !== "sub" ? d.display || "" : "";
+      el.querySelector(".ico").innerHTML = svg(ico[k]);
+    }
+    const swap = k => { ["pb", "pa"].forEach(id => $(id).classList.add("out")); setTimeout(() => { show(k); ["pb", "pa"].forEach(id => $(id).classList.remove("out")); }, 420); };
+    if (!order.length) { $("pl").textContent = "Pick what to show in the builder"; return; }
+    show(order[0]);
+    let timer = setInterval(() => { if (order.length > 1) swap(order[++i % order.length]); }, Math.max(2, Number(W.secs) || 6) * 1000);
+    function got(e) {
+      let k = null;
+      if (e.kind === "sub" || e.kind === "member") { data.sub = { name: e.name }; store.set("sup:sub", data.sub); k = "sub"; }
+      else if (e.amount) {
+        data.tip = { name: e.name, display: e.display || (C.w.tips.cur || "") + nf(e.amount) }; store.set("sup:tip", data.tip); k = "tip";
+        if (!data.top || e.amount > (data.top.amount || 0)) { data.top = { ...data.tip, amount: e.amount }; store.set("sup:top", data.top); if (W.top) k = "top"; }
+      }
+      if (!k || !W[k]) return;
+      i = order.indexOf(k); clearInterval(timer);
+      show(k); el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); burst(400, 80); sound();
+      timer = setInterval(() => { if (order.length > 1) swap(order[++i % order.length]); }, Math.max(2, Number(W.secs) || 6) * 1000);
+    }
+    addEventListener("message", e => { if (e.data && e.data.spw === "event") got(e.data.e); });
+    setInterval(() => { ["sub", "tip", "top"].forEach(k => { const v = store.get("sup:" + k, null); if (!DEMO && JSON.stringify(v) !== JSON.stringify(data[k])) data[k] = v; }); }, 3000);
+    if (!TOKEN && !DEMO) status("Add your Streamlabs token in the builder");
+    streamlabs(got);
+  }
+
+  addEventListener("message", e => { if (e.data && e.data.spw === "sound") sound(); });
+  ({ likes: goal, subs: goal, tips: goal, viewers, timer, socials, supporter })[TYPE]();
+})();
+</script>
+</body></html>

@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stream Widgets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Orbitron:wght@800&family=Teko:wght@600&family=Rajdhani:wght@700&family=Fredoka:wght@600&family=Bungee&family=Pixelify+Sans:wght@700&family=Anton&family=Share+Tech+Mono&family=Nunito:wght@900&display=swap">
+<style>
+:root {
+  --ink: #1c1f24; --panel: #24282e; --raise: #2d3239; --line: #3c424c; --line2: #4c5460;
+  --text: #eef0f2; --muted: #a3abb6; --tally: #ff4b3e; --tally-dim: rgba(255,75,62,.16); --focus: #79b6ff;
+  --f: "Archivo", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark; box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+body { margin: 0; background: var(--ink); color: var(--text); font: 400 15px/1.45 var(--f); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+a { color: #9fd0ff; }
+
+.top { display: flex; align-items: center; gap: 16px 20px; padding: 18px clamp(16px, 3vw, 36px); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.brand { margin-right: auto; min-width: 0; }
+.brand h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; font-stretch: 125%; letter-spacing: -.01em; line-height: 1.05; }
+.brand p { margin: 4px 0 0; color: var(--muted); font-size: 14px; font-stretch: 90%; max-width: 70ch; }
+.brand p b { color: var(--text); font-weight: 600; }
+.btn { appearance: none; display: inline-block; text-decoration: none; color: var(--text); border: 1px solid var(--line2); background: var(--raise); border-radius: 6px; padding: 9px 14px; font-weight: 600; cursor: pointer; font-stretch: 95%; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--text); color: var(--ink); border-color: var(--text); font-weight: 700; padding: 11px 18px; }
+.btn.primary:hover { background: #fff; }
+.btn.small { padding: 6px 10px; font-size: 13px; }
+.btn[disabled] { opacity: .55; cursor: default; }
+
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 460px; align-items: start; }
+.stagecol { position: sticky; top: 0; padding: 22px clamp(16px, 3vw, 36px); min-width: 0; }
+.formcol { border-left: 1px solid var(--line); background: var(--panel); min-height: calc(100vh - 80px); }
+@media (max-width: 1060px) { .app { grid-template-columns: 1fr; } .stagecol { position: static; } .formcol { border-left: 0; border-top: 1px solid var(--line); } }
+
+.picker { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.key { appearance: none; border: 1px solid var(--line2); background: var(--raise); color: var(--text); border-radius: 4px; padding: 10px 14px;
+  font-weight: 700; font-stretch: 85%; cursor: pointer; box-shadow: inset 0 -3px 0 rgba(0,0,0,.35); text-align: left; }
+.key small { display: block; font-weight: 500; font-size: 11.5px; color: var(--muted); font-stretch: 90%; }
+.key:hover { border-color: var(--muted); }
+.key[aria-pressed="true"] { background: var(--tally); border-color: var(--tally); color: #fff; }
+.key[aria-pressed="true"] small { color: rgba(255,255,255,.85); }
+
+.mon-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; font-stretch: 90%; flex-wrap: wrap; }
+.tally { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--tally); }
+.tally::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--tally); box-shadow: 0 0 0 3px var(--tally-dim); }
+.mon-head .res { color: var(--muted); font-variant-numeric: tabular-nums; }
+.monitor { position: relative; width: 100%; aspect-ratio: 16 / 9; outline: 3px solid var(--tally); overflow: hidden; display: grid; place-items: center; background: #0a0b0d; }
+.monitor[data-bg="game"] { background: linear-gradient(180deg, #6d8aa6 0%, #a9c0cc 44%, #7d8a57 45%, #59663a 70%, #3b4526 100%); }
+.monitor[data-bg="dark"] { background: #101216; }
+.monitor[data-bg="light"] { background: #e9ecef; }
+.monitor[data-bg="checker"] { background: #222 repeating-conic-gradient(#2c2c2c 0 25%, #1d1d1d 0 50%) 0 0/24px 24px; }
+.monitor iframe { width: 88%; border: 0; background: transparent; color-scheme: normal; display: block; }
+.ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; color: var(--muted); font-size: 13px; }
+.ctrl .sp { margin-left: auto; }
+.seg { display: inline-flex; border: 1px solid var(--line2); border-radius: 6px; overflow: hidden; }
+.seg button { appearance: none; border: 0; background: transparent; padding: 7px 11px; cursor: pointer; font-weight: 600; font-stretch: 92%; color: var(--muted); font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--line2); }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--ink); }
+.notice { margin-top: 12px; font-size: 13.5px; color: #ffd6a0; }
+
+.tabs { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 0 2px; background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px 0; }
+.tabs button { appearance: none; border: 0; background: transparent; color: var(--muted); padding: 9px 9px 11px; font-weight: 650; font-stretch: 92%; cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; }
+.tabs button:hover { color: var(--text); }
+.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--tally); }
+.panel[hidden] { display: none; }
+section.grp { padding: 20px 24px 24px; border-bottom: 1px solid var(--line); }
+section.grp h2 { margin: 0 0 4px; font-size: 21px; font-weight: 750; font-stretch: 112%; letter-spacing: -.005em; }
+section.grp > p.hint { margin: 0 0 16px; color: var(--muted); font-size: 14px; max-width: 58ch; }
+h3.sub { margin: 18px 0 8px; font-size: 15px; font-weight: 700; font-stretch: 105%; }
+.field { display: grid; gap: 6px; margin-bottom: 14px; }
+.field > span { font-size: 13px; font-weight: 600; color: var(--muted); font-stretch: 92%; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+input[type=text], input[type=number], input[type=url], input[type=time], textarea, select {
+  width: 100%; background: var(--ink); border: 1px solid var(--line2); border-radius: 6px; padding: 9px 11px; min-width: 0; }
+input:focus, textarea:focus, select:focus { border-color: var(--focus); outline: none; box-shadow: 0 0 0 2px rgba(121,182,255,.25); }
+.check { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; cursor: pointer; }
+.check input { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--tally); flex: none; }
+.small-note { font-size: 13px; color: var(--muted); margin: -6px 0 14px; max-width: 58ch; }
+.warn { font-size: 13px; color: #ffd6a0; background: rgba(255,170,60,.09); border: 1px solid rgba(255,170,60,.3); border-radius: 6px; padding: 10px 12px; margin: 4px 0 14px; }
+.okbox { font-size: 13px; color: #b9f0c9; background: rgba(80,200,120,.08); border: 1px solid rgba(80,200,120,.3); border-radius: 6px; padding: 10px 12px; margin: 0 0 14px; }
+
+.opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; margin-bottom: 16px; }
+.opts.three { grid-template-columns: repeat(3, 1fr); }
+.opts button { appearance: none; border: 1px solid var(--line2); background: var(--ink); border-radius: 6px; padding: 9px 8px; cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--muted); text-align: center; }
+.opts button:hover { color: var(--text); }
+.opts button[aria-pressed="true"] { border-color: var(--text); color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.opts button small { display: block; font-weight: 500; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.range { display: grid; grid-template-columns: 1fr 52px; gap: 12px; align-items: center; margin-bottom: 14px; }
+.range input { accent-color: var(--tally); width: 100%; }
+.range output { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; text-align: right; }
+
+.skins { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+.skin { appearance: none; text-align: left; background: var(--ink); border: 1px solid var(--line2); border-radius: 8px; padding: 10px; cursor: pointer; display: grid; gap: 8px; }
+.skin:hover { border-color: var(--muted); }
+.skin[aria-pressed="true"] { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.skin .sw { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 10px; font-size: 17px; overflow: hidden; white-space: nowrap; }
+.skin .sw i { flex: none; width: 18px; height: 18px; }
+.skin .sw b { flex: 1; height: 6px; }
+.skin strong { display: block; font-weight: 700; font-stretch: 105%; }
+.skin small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.3; }
+.colors { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.color { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: center; background: var(--ink); border: 1px solid var(--line2); border-radius: 6px; padding: 6px; }
+.color input[type=color] { width: 34px; height: 34px; border: 0; padding: 0; background: none; border-radius: 4px; cursor: pointer; }
+.color input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.color input[type=color]::-webkit-color-swatch { border: 1px solid rgba(255,255,255,.2); border-radius: 4px; }
+.color b { display: block; font-size: 12px; font-weight: 600; color: var(--muted); line-height: 1.2; }
+.color input[type=text] { padding: 2px 0; border: 0; background: transparent; font-size: 13px; font-variant-numeric: tabular-nums; }
+.color input[type=text]:focus { box-shadow: none; }
+.fonts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.font { appearance: none; background: var(--ink); border: 1px solid var(--line2); border-radius: 6px; padding: 10px; cursor: pointer; text-align: left; }
+.font[aria-pressed="true"] { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+.font .s { display: block; font-size: 22px; line-height: 1.15; white-space: nowrap; overflow: hidden; }
+.font small { color: var(--muted); font-size: 12px; }
+
+.list { display: grid; gap: 8px; margin-bottom: 10px; }
+.li { display: grid; grid-template-columns: 96px 1fr 1.3fr 34px; gap: 6px; align-items: center; }
+.icon-btn { appearance: none; border: 1px solid var(--line2); background: transparent; border-radius: 6px; width: 34px; height: 38px; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; }
+.icon-btn:hover { color: var(--text); border-color: var(--muted); }
+
+.guide { border: 1px solid var(--line); border-radius: 6px; margin: -4px 0 14px; background: var(--ink); }
+.guide summary { cursor: pointer; padding: 8px 12px; font-size: 13.5px; font-weight: 600; color: #9fd0ff; }
+.guide ol { margin: 0; padding: 2px 14px 12px 32px; font-size: 13.5px; color: var(--muted); }
+.guide li { margin-bottom: 6px; }
+.guide li b { color: var(--text); font-weight: 600; }
+.guide code { background: var(--panel); padding: 1px 5px; border-radius: 4px; color: var(--text); font-size: 12.5px; }
+.guide .tipline { margin: 0; padding: 0 14px 12px; font-size: 12.5px; color: var(--muted); }
+.test-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: -4px 0 14px; }
+.test-out { font-size: 13.5px; color: var(--muted); }
+.test-out.ok { color: #8fe3a8; } .test-out.err { color: #ffb4a8; }
+.needs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.needs span { font-size: 12.5px; font-weight: 600; padding: 4px 9px; border-radius: 99px; border: 1px solid var(--line2); color: var(--muted); }
+.needs span.ok { border-color: rgba(80,200,120,.5); color: #8fe3a8; }
+.needs span.miss { border-color: rgba(255,170,60,.5); color: #ffd6a0; }
+
+.linkbox { width: 100%; min-height: 96px; resize: vertical; font: 12.5px/1.4 ui-monospace, Consolas, monospace; word-break: break-all; }
+.steps { margin: 0 0 14px; padding-left: 22px; color: var(--muted); font-size: 14px; }
+.steps li { margin-bottom: 8px; }
+.steps b { color: var(--text); font-weight: 600; }
+.steps code { background: var(--ink); padding: 1px 6px; border-radius: 4px; color: var(--text); font-size: 13px; }
+.status { font-size: 13.5px; color: var(--muted); min-height: 1.4em; }
+.status.ok { color: #8fe3a8; } .status.err { color: #ffb4a8; }
+.foot { padding: 18px 24px 28px; color: var(--muted); font-size: 13px; }
+body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body class="yt">
+<header class="top">
+  <div class="brand">
+    <h1>Stream Widgets</h1>
+    <p>Goal bars, live counters, timers and tickers for OBS. Pick one, make it yours, and paste the link into OBS. Made by <b>SHAHZON</b>.</p>
+  </div>
+  <a class="btn" href="../">Stream Pack Builder</a>
+  <button class="btn primary" id="go-obs" type="button">Get my OBS link</button>
+</header>
+
+<main class="app">
+  <div class="stagecol">
+    <div class="picker" id="picker" role="group" aria-label="Widget"></div>
+    <div class="mon-head"><span class="tally">Preview</span><span class="res" id="res"></span><span class="res" id="mode"></span></div>
+    <div class="monitor" id="monitor" data-bg="game"><iframe id="pv" title="Widget preview"></iframe></div>
+    <div class="ctrl">
+      <span id="acts"></span>
+      <span class="sp">Background</span>
+      <div class="seg" id="bg" role="group" aria-label="Preview background">
+        <button type="button" data-v="game">Game</button><button type="button" data-v="dark">Dark</button><button type="button" data-v="light">Light</button><button type="button" data-v="checker">See-through</button>
+      </div>
+    </div>
+    <label class="check" style="margin-top:12px" id="live-wrap"><input type="checkbox" id="live"><span>Show my real data in the preview (uses your keys)</span></label>
+    <p class="notice" id="notice" hidden></p>
+  </div>
+  <div class="formcol" id="form"></div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  /* Keep DEF in step with DEF inside w.html. New options: add them in both, with a default. */
+  const DEF = {
+    v: 1, type: "likes", platform: "youtube", handle: "", ch: "", poll: 20, locale: "en-IN",
+    look: { skin: "neon", font: "orbitron", a: "#00e5ff", b: "#b14dff", t: "#ffffff", p: "#0a0718", po: .85, icon: true },
+    fx: { style: "sparks", banner: true, sound: "chime", vol: .6, url: "" },
+    w: {
+      likes:   { label: "LIKE GOAL", start: 100, step: 100, big: "{goal} LIKES!", small: "Goal smashed! Next: {next}", hot: true },
+      subs:    { label: "SUB GOAL", start: 1000, step: 100, exact: "", big: "{goal} SUBS!", small: "Welcome to the family! Next: {next}", hot: true },
+      tips:    { tag: "TIP GOAL", title: "New mic", goal: 5000, step: 0, raised: 0, cur: "₹", tips: true, superchats: true, bits: false,
+                 big: "GOAL REACHED!", small: "Thank you so much", hot: true },
+      viewers: { label: "Watching", likes: true, likesLabel: "Likes" },
+      timer:   { mode: "uptime", label: "Live for", minutes: 10, at: "21:00", done: "Starting now" },
+      socials: { secs: 5, items: [
+        { icon: "camera", label: "INSTAGRAM", value: "@yourname" },
+        { icon: "chat", label: "DISCORD", value: "discord.gg/yourname" },
+        { icon: "coin", label: "TIP / UPI", value: "yourname@upi" } ] },
+      supporter: { secs: 6, sub: true, tip: true, top: true, subLabel: "Latest sub", tipLabel: "Latest tip", topLabel: "Top tip" }
+    }
+  };
+  const TYPES = [
+    ["likes", "Like goal", "YouTube"], ["subs", "Sub goal", "YouTube"], ["tips", "Tip goal", "Streamlabs"],
+    ["viewers", "Viewers", "YouTube"], ["timer", "Timer", "No keys needed"], ["socials", "Socials", "No keys needed"], ["supporter", "Supporters", "Streamlabs"]
+  ];
+  const SIZE = { likes: [800, 300], subs: [800, 300], tips: [800, 300], viewers: [560, 150], timer: [560, 150], socials: [760, 150], supporter: [800, 160] };
+  const NEEDS = { likes: ["yt"], subs: ["yt"], tips: ["sl"], viewers: ["yt"], timer: [], socials: [], supporter: ["sl"] };
+  const YT_ONLY = ["likes", "subs", "viewers"];
+  const SKINS = {
+    neon:     { label: "Neon", note: "Glowing outline", font: "orbitron", a: "#00e5ff", b: "#b14dff", t: "#ffffff", p: "#0a0718", po: .85 },
+    blade:    { label: "Blade", note: "Sharp, angled esports card", font: "teko", a: "#e3121b", b: "#ff5a1f", t: "#ffffff", p: "#16080a", po: .92 },
+    glass:    { label: "Glass", note: "Frosted and soft", font: "archivo", a: "#7cf5c8", b: "#5aa9ff", t: "#ffffff", p: "#0e1420", po: .6 },
+    pixel:    { label: "Pixel", note: "Retro 8-bit blocks", font: "pixelify", a: "#ffd23f", b: "#3ddc84", t: "#ffffff", p: "#1b1b2f", po: 1 },
+    clean:    { label: "Clean", note: "Simple and flat", font: "rajdhani", a: "#ff4757", b: "#ff7f50", t: "#ffffff", p: "#111318", po: .88 },
+    cozy:     { label: "Cozy", note: "Round and pastel", font: "fredoka", a: "#ffb4a2", b: "#e5989b", t: "#fff4ec", p: "#2a1f33", po: .9 },
+    terminal: { label: "Terminal", note: "Hacker console", font: "mono", a: "#00ffa3", b: "#00b3ff", t: "#e6fff6", p: "#020409", po: .88 }
+  };
+  const FONTS = { orbitron: ["Orbitron", 800], teko: ["Teko", 600], rajdhani: ["Rajdhani", 700], archivo: ["Archivo", 800], fredoka: ["Fredoka", 600],
+    bungee: ["Bungee", 400], pixelify: ["Pixelify Sans", 700], anton: ["Anton", 400], mono: ["Share Tech Mono", 400], nunito: ["Nunito", 900] };
+  const ICON_NAMES = [["camera", "Camera"], ["play", "Video"], ["chat", "Chat"], ["at", "@ handle"], ["globe", "Website"], ["coin", "Coin"], ["rupee", "Rupee"],
+    ["controller", "Game"], ["heart", "Heart"], ["star", "Star"], ["bell", "Bell"], ["bolt", "Bolt"]];
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const escH = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const merge = (d, v) => {
+    if (Array.isArray(d)) return Array.isArray(v) ? v : d;
+    if (d && typeof d === "object") { const o = { ...d }; if (v && typeof v === "object") for (const k in v) o[k] = k in d ? merge(d[k], v[k]) : v[k]; return o; }
+    return v === undefined || v === null ? d : v;
+  };
+
+  /* ---------------- state (keys are kept apart and only saved if asked) ---------------- */
+  const ST = "spw-builder:v1", KS = "spw-builder:keys";
+  let S = (() => { try { const v = JSON.parse(localStorage.getItem(ST)); if (v) return merge(clone(DEF), v); } catch {} return clone(DEF); })();
+  let K = (() => { try { const v = JSON.parse(localStorage.getItem(KS)); if (v) return { k: v.k || "", t: v.t || "", remember: true }; } catch {} return { k: "", t: "", remember: false }; })();
+  const ui = { tab: "widget", bg: "game", live: false };
+  let saveT;
+  function save() {
+    clearTimeout(saveT);
+    saveT = setTimeout(() => {
+      try { localStorage.setItem(ST, JSON.stringify(S)); } catch {}
+      try { if (K.remember) localStorage.setItem(KS, JSON.stringify({ k: K.k, t: K.t })); else localStorage.removeItem(KS); } catch {}
+    }, 300);
+  }
+  const get = p => p.split(".").reduce((o, k) => o == null ? o : o[k], S);
+  const set = (p, v) => { const ks = p.split("."), last = ks.pop(); ks.reduce((o, k) => o[k], S)[last] = v; };
+  const W = () => S.w[S.type];
+
+  /* ---------------- the link ---------------- */
+  const b64 = str => { const u = new TextEncoder().encode(str); let s = ""; u.forEach(c => s += String.fromCharCode(c)); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
+  function cfgFor(type) {
+    const w = { [type]: S.w[type] };
+    if (type === "supporter") w.tips = { cur: S.w.tips.cur };
+    return { v: 1, type, platform: S.platform, handle: S.handle, ch: S.ch, poll: S.poll, locale: S.locale, look: S.look, fx: S.fx, w };
+  }
+  const widgetURL = () => new URL("w.html", location.href).href;
+  function hashFor(type, withKeys) {
+    let h = "#c=" + b64(JSON.stringify(cfgFor(type)));
+    if (withKeys) { if (K.k && (needs(type).includes("yt") || type === "timer")) h += "&k=" + encodeURIComponent(K.k); if (K.t && (needs(type).includes("sl") || type === "subs")) h += "&t=" + encodeURIComponent(K.t); }
+    return h;
+  }
+  const needs = t => NEEDS[t] || [];
+  function readLink(text) {
+    const i = text.indexOf("#"); if (i < 0) return false;
+    const h = new URLSearchParams(text.slice(i + 1));
+    try {
+      const s = (h.get("c") || "").replace(/-/g, "+").replace(/_/g, "/");
+      const c = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s), ch => ch.charCodeAt(0))));
+      const type = SIZE[c.type] ? c.type : "likes";
+      const keepW = clone(S.w);
+      S = merge(clone(DEF), { ...c, w: { ...keepW, ...(c.w || {}) } }); S.type = type;
+      if (h.get("k")) K.k = h.get("k"); if (h.get("t")) K.t = h.get("t");
+      return true;
+    } catch { return false; }
+  }
+
+  /* ---------------- small form helpers ---------------- */
+  const T = (k, label, ph = "", extra = "") => `<label class="field"><span>${label}</span><input type="text" data-k="${k}" placeholder="${escH(ph)}" ${extra}></label>`;
+  const N = (k, label, extra = "") => `<label class="field"><span>${label}</span><input type="number" data-k="${k}" ${extra}></label>`;
+  const C = (k, label) => `<label class="check"><input type="checkbox" data-k="${k}"><span>${label}</span></label>`;
+  const opts = (k, list, cls = "") => `<div class="opts ${cls}" data-opts="${k}">${list.map(([v, l, s]) => `<button type="button" data-v="${v}">${l}${s ? `<small>${s}</small>` : ""}</button>`).join("")}</div>`;
+  const R = (k, label, min, max, step, fmt) => `<div class="field"><span>${label}</span></div><div class="range"><input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}" aria-label="${escH(label)}"><output data-out="${k}" data-fmt="${fmt}"></output></div>`;
+  const fmtOut = (v, f) => f === "%" ? Math.round(v * 100) + "%" : f === "s" ? v + " s" : v;
+
+  /* ---------------- widget settings, per type ---------------- */
+  function widgetPanel() {
+    const t = S.type, p = "w." + t + ".";
+    const textHelp = `<p class="small-note">In the celebration text, <code>{goal}</code> becomes the goal you just reached and <code>{next}</code> the next one.</p>`;
+    if (t === "likes" || t === "subs") return `
+      <section class="grp"><h2>${t === "likes" ? "Like goal" : "Subscriber goal"}</h2>
+        <p class="hint">${t === "likes" ? "Counts likes on your live stream. When the goal is reached it celebrates and the next goal starts." : "Counts your channel's subscribers. When the goal is reached it celebrates and the next goal starts."}</p>
+        ${T(p + "label", "Title", t === "likes" ? "LIKE GOAL" : "SUB GOAL")}
+        <div class="row">${N(p + "start", "First goal", 'min="1"')}${N(p + "step", "Then add", 'min="0"')}</div>
+        <p class="small-note">Goals go ${get(p + "start")}, ${Number(get(p + "start")) + Number(get(p + "step") || 0)}, ${Number(get(p + "start")) + 2 * Number(get(p + "step") || 0)}… Set "Then add" to 0 for one goal only.</p>
+        ${t === "subs" ? `${N(p + "exact", "Exact subscriber count right now (optional)", 'min="0" placeholder="From YouTube Studio"')}
+        <p class="small-note">YouTube shows big numbers rounded (12.4K). Type your exact count from YouTube Studio, and with a Streamlabs token each new sub adds 1. Leave empty to use YouTube's count.</p>` : ""}
+        ${C(p + "hot", "Glow when the goal is close (85%)")}
+        <h3 class="sub">Celebration text</h3>
+        ${T(p + "big", "Big text")}${T(p + "small", "Line under it")}${textHelp}
+      </section>`;
+    if (t === "tips") return `
+      <section class="grp"><h2>Tip goal</h2>
+        <p class="hint">Adds up tips${S.platform === "twitch" ? " and bits" : " and Super Chats"} from Streamlabs while you're live. Saving for something? Put it here.</p>
+        <div class="row">${T(p + "tag", "Small tag", "TIP GOAL")}${T(p + "title", "What it's for", "New mic")}</div>
+        <div class="row">${N(p + "goal", "Goal amount", 'min="1"')}${T(p + "cur", "Currency symbol", "₹")}</div>
+        <div class="row">${N(p + "raised", "Already raised", 'min="0"')}${N(p + "step", "Next goal adds (0 = one goal)", 'min="0"')}</div>
+        <p class="small-note">Changing "Already raised" or the goal and pasting the new link into OBS starts the count again from that amount.</p>
+        <h3 class="sub">Count these</h3>
+        ${C(p + "tips", "Streamlabs tips")}
+        <div class="only-yt">${C(p + "superchats", "Super Chats (added at face value, whatever the currency)")}</div>
+        <div class="only-tw">${C(p + "bits", "Bits (100 bits = 1)")}</div>
+        ${C(p + "hot", "Glow when the goal is close (85%)")}
+        <h3 class="sub">Celebration text</h3>
+        ${T(p + "big", "Big text")}${T(p + "small", "Line under it")}${textHelp}
+      </section>`;
+    if (t === "viewers") return `
+      <section class="grp"><h2>Live viewers</h2>
+        <p class="hint">Shows how many people are watching right now${W().likes ? ", plus likes" : ""}. Updates every ${S.poll} seconds while you're live.</p>
+        ${T(p + "label", "Viewers label", "Watching")}
+        ${C(p + "likes", "Also show likes")}
+        ${W().likes ? T(p + "likesLabel", "Likes label", "Likes") : ""}
+      </section>`;
+    if (t === "timer") return `
+      <section class="grp"><h2>Timer</h2>
+        <p class="hint">Count up how long you've been live, or count down to the start.</p>
+        ${opts(p + "mode", [["uptime", "Time live", "counts up"], ["minutes", "Countdown", "in minutes"], ["clock", "Count to", "a clock time"]], "three")}
+        ${T(p + "label", "Label", "Live for")}
+        ${W().mode === "minutes" ? N(p + "minutes", "Minutes", 'min="1" max="600"') : ""}
+        ${W().mode === "clock" ? `<label class="field"><span>Start time</span><input type="time" data-k="${p}at"></label>` : ""}
+        ${W().mode !== "uptime" ? T(p + "done", "Show this when it hits zero", "Starting now") : ""}
+        ${W().mode === "uptime" ? `<p class="small-note">With your YouTube key it uses YouTube's real start time. Without it, it starts counting when OBS starts streaming (set Page permissions to "Read access to OBS status information").</p>` : ""}
+        ${W().mode === "minutes" ? `<p class="small-note">Starts counting when the source loads. Tick "Refresh browser when scene becomes active" in OBS so it restarts each time you show the scene.</p>` : ""}
+      </section>`;
+    if (t === "socials") return `
+      <section class="grp"><h2>Socials</h2>
+        <p class="hint">Shows your links one at a time. Empty lines are skipped.</p>
+        <div class="list" id="soc"></div>
+        <button type="button" class="btn small" id="soc-add">Add a line</button>
+        <div style="margin-top:16px">${R(p + "secs", "Seconds per line", 2, 15, 1, "s")}</div>
+      </section>`;
+    if (t === "supporter") return `
+      <section class="grp"><h2>Supporters</h2>
+        <p class="hint">Takes turns showing your latest ${S.platform === "twitch" ? "follower" : "subscriber"}, latest tip and the biggest tip of the stream. New ones pop up straight away.</p>
+        ${C(p + "sub", "Latest " + (S.platform === "twitch" ? "follower or sub" : "subscriber or member"))}
+        ${W().sub ? T(p + "subLabel", "Label", "Latest sub") : ""}
+        ${C(p + "tip", "Latest tip" + (S.platform === "twitch" ? " or bits" : " or Super Chat"))}
+        ${W().tip ? T(p + "tipLabel", "Label", "Latest tip") : ""}
+        ${C(p + "top", "Top tip of this stream")}
+        ${W().top ? T(p + "topLabel", "Label", "Top tip") : ""}
+        ${R(p + "secs", "Seconds each", 3, 20, 1, "s")}
+        <p class="small-note">Top tip resets when OBS starts a new stream.</p>
+      </section>`;
+    return "";
+  }
+
+  function lookPanel() {
+    const sw = k => { const s = SKINS[k], f = FONTS[s.font];
+      const r = k === "cozy" ? "99px" : k === "glass" ? "14px" : k === "neon" ? "8px" : k === "clean" ? "6px" : "0";
+      const border = k === "neon" ? `border:2px solid ${s.a};box-shadow:0 0 10px ${s.a}88` : k === "pixel" ? "border:3px solid #000;box-shadow:3px 3px 0 #000" : k === "terminal" ? `border:1px solid ${s.a}` : k === "cozy" ? `border:2px solid ${s.a}99` : k === "glass" ? "border:1px solid rgba(255,255,255,.3)" : "";
+      const clip = k === "blade" ? "clip-path:polygon(0 0,100% 0,100% 65%,calc(100% - 10px) 100%,0 100%)" : "";
+      return `<span class="sw" style="background:${s.p};color:${s.t};border-radius:${r};${border};${clip};font-family:'${f[0]}';font-weight:${f[1]};${k === "blade" ? "font-style:italic;" : ""}">
+        <i style="background:linear-gradient(160deg,${s.a},${s.b});border-radius:${k === "cozy" || k === "glass" ? "50%" : "3px"}"></i>92
+        <b style="background:linear-gradient(90deg,${s.b},${s.a});border-radius:${r === "0" ? 0 : "9px"}"></b></span>`; };
+    return `
+      <section class="grp"><h2>Style</h2>
+        <p class="hint">One look for all your widgets, so they match. Picking a style also sets its colours and font, which you can change below.</p>
+        <div class="skins" id="skins">${Object.entries(SKINS).map(([k, s]) => `<button type="button" class="skin" data-skin="${k}">${sw(k)}<span><strong>${s.label}</strong><small>${s.note}</small></span></button>`).join("")}</div>
+        <div class="field"><span>Colours</span></div>
+        <div class="colors">${[["a", "Main"], ["b", "Second"], ["t", "Text"], ["p", "Card"]].map(([k, l]) => `
+          <label class="color"><input type="color" data-color="${k}" aria-label="${l} colour"><div><b>${l}</b><input type="text" data-hex="${k}" maxlength="7" aria-label="${l} hex"></div></label>`).join("")}</div>
+        ${R("look.po", "Card see-through", 0, 1, .05, "%")}
+        <div class="toolrow" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+          <label class="btn small" for="pack-in" tabindex="0">Use colours from my Stream Pack</label>
+          <button type="button" class="btn small" id="skin-reset">Reset colours</button>
+        </div>
+        <input type="file" id="pack-in" accept="application/json,.json" hidden>
+        <p class="small-note">Stream Pack: in the pack builder open <b>Save &amp; keys</b>, press <b>Save settings file</b>, then load that file here.</p>
+        <div class="field"><span>Font</span></div>
+        <div class="fonts" id="fonts">${Object.entries(FONTS).map(([k, f]) => `<button type="button" class="font" data-font="${k}"><span class="s" style="font-family:'${f[0]}';font-weight:${f[1]}">1,248 LIKES</span><small>${f[0]}</small></button>`).join("")}</div>
+        ${C("look.icon", "Show the icon box")}
+      </section>`;
+  }
+
+  function celebPanel() {
+    const has = ["likes", "subs", "tips", "supporter"].includes(S.type);
+    return `
+      <section class="grp"><h2>Celebration</h2>
+        <p class="hint">${has ? (S.type === "supporter" ? "Plays when a new supporter pops up." : "Plays when a goal is reached.") + " Press Play celebration under the preview to see it." : "This widget doesn't celebrate. These settings are shared, so they'll apply to your goal and supporter widgets."}</p>
+        <div class="field"><span>Effect</span></div>
+        ${opts("fx.style", [["sparks", "Sparks"], ["confetti", "Confetti"], ["thunder", "Thunder", "flash + bolt"], ["hearts", "Hearts"], ["stars", "Stars"], ["none", "None"]], "three")}
+        ${C("fx.banner", "Show the big text on goals")}
+        <div class="field"><span>Sound</span></div>
+        ${opts("fx.sound", [["chime", "Chime"], ["coin", "Coin"], ["levelup", "Level up"], ["thunder", "Thunder"], ["pop", "Pop"], ["custom", "My sound", "from a link"], ["none", "None"]], "three")}
+        ${S.fx.sound === "custom" ? `<label class="field"><span>Link to an .mp3 or .wav file</span><input type="url" data-k="fx.url" placeholder="https://…/alert.mp3" spellcheck="false"></label>
+          <p class="small-note">It must be a direct link that plays in a browser tab, for example from your GitHub Pages site.</p>` : ""}
+        ${S.fx.sound !== "none" ? R("fx.vol", "Volume", 0, 1, .05, "%") + `<button type="button" class="btn small" id="snd-test">Play sound</button>
+          <p class="small-note" style="margin-top:10px">In OBS, tick <b>Control audio via OBS</b> on the source so viewers hear it.</p>` : ""}
+      </section>`;
+  }
+
+  function connectPanel() {
+    return `
+      <section class="grp"><h2>Connect</h2>
+        <p class="hint">Your own free keys. Each one takes about 5 minutes. Open the steps under each box.</p>
+        <div class="field"><span>Platform</span></div>
+        ${opts("platform", [["youtube", "YouTube"], ["twitch", "Twitch"]], "three")}
+        <div class="only-yt">
+          <h3 class="sub">YouTube (like goal, sub goal, viewers, timer)</h3>
+          ${T("handle", "Channel handle", "@yourchannel", 'spellcheck="false"')}
+          ${T("ch", "Channel ID (optional)", "UC… or paste your channel link", 'spellcheck="false"')}
+          <details class="guide"><summary>How to find your Channel ID</summary><ol>
+            <li>Sign in to YouTube with your streaming channel.</li>
+            <li>Open <a href="https://www.youtube.com/account_advanced" target="_blank" rel="noopener">youtube.com/account_advanced</a>.</li>
+            <li>Copy the <b>Channel ID</b> (starts with <code>UC</code>). Optional: your handle is enough, but the ID saves one lookup.</li>
+          </ol></details>
+          <label class="field"><span>YouTube API key</span><input type="text" id="k-yt" placeholder="AIza…" autocomplete="off" spellcheck="false"></label>
+          <details class="guide"><summary>How to get a free YouTube API key</summary><ol>
+            <li>Open <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">console.cloud.google.com</a> and sign in with any Google account. It's free; no card needed.</li>
+            <li>At the top, click the <b>project picker</b> › <b>New project</b>. Name it <code>Stream Widgets</code> and press <b>Create</b>. Make sure it's selected.</li>
+            <li>In the top search bar type <b>YouTube Data API v3</b>, open it and press <b>Enable</b>.</li>
+            <li>Go to <b>APIs &amp; Services › Credentials</b> › <b>+ Create credentials</b> › <b>API key</b>. If asked, pick <b>Public data</b>.</li>
+            <li>Copy the key (starts with <code>AIza</code>) and paste it above.</li>
+            <li>Recommended: in the key's settings, under <b>API restrictions</b> pick <b>Restrict key</b> and tick only <b>YouTube Data API v3</b>. Leave <b>Application restrictions</b> on <b>None</b>.</li>
+            <li>Press <b>Test my key</b>. A new key can take a few minutes to start working.</li>
+          </ol><p class="tipline">Already made a key for the Stream Pack? Use the same one.</p></details>
+          <div class="test-row"><button type="button" class="btn small" id="test-yt">Test my key</button><span class="test-out" id="test-out" role="status" aria-live="polite"></span></div>
+          ${R("poll", "Check YouTube every", 10, 60, 5, "s")}
+          <p class="small-note">All your widgets share one check, so adding more widgets doesn't use more of your free daily limit. 20 seconds is safe for long streams.</p>
+        </div>
+        <h3 class="sub">Streamlabs (tip goal, supporters, exact sub count)</h3>
+        <label class="field"><span>Streamlabs Socket API token</span><input type="text" id="k-sl" placeholder="Long code from Streamlabs" autocomplete="off" spellcheck="false"></label>
+        <details class="guide"><summary>How to get your Streamlabs token</summary><ol>
+          <li>Open <a href="https://streamlabs.com/" target="_blank" rel="noopener">streamlabs.com</a> and log in with the <b><span class="only-yt">YouTube</span><span class="only-tw">Twitch</span> account you stream on</b>. It's free.</li>
+          <li>Open your <b>Dashboard</b>, then <b>Settings</b> › <b>API Settings</b>.</li>
+          <li>Open the <b>API Tokens</b> tab and copy <b>Your Socket API Token</b>. Paste it above.</li>
+          <li>For tips, set up your tip page in Streamlabs and share that link with viewers.</li>
+        </ol><p class="tipline">Already using it in the Stream Pack? It's the same token.</p></details>
+        <label class="check"><input type="checkbox" id="k-rem"><span>Remember my keys on this computer</span></label>
+        <p class="warn">Keys are private, like passwords. They only go into your OBS links. Don't show those links on stream or send them to anyone.</p>
+      </section>`;
+  }
+
+  function obsPanel() {
+    const [w, h] = SIZE[S.type], miss = missing(S.type), name = TYPES.find(x => x[0] === S.type)[1];
+    const local = location.protocol === "file:";
+    return `
+      <section class="grp"><h2>Add “${name}” to OBS</h2>
+        ${miss.length ? `<p class="warn">${miss.join(" ")} You can still add it now and paste a new link later.</p>` : `<p class="okbox">Ready. This link has everything this widget needs.</p>`}
+        ${local ? `<p class="warn">You opened the builder from your computer, so this link points to a file on this PC. Open the builder from your website to get a link that works anywhere.</p>` : ""}
+        <div class="field"><span>Your link</span><textarea class="linkbox" id="link" readonly></textarea></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+          <button type="button" class="btn primary" id="copy">Copy link</button>
+          <span class="status" id="copy-st" role="status" aria-live="polite"></span>
+        </div>
+        <ol class="steps">
+          <li>In OBS: <b>Sources</b> › <b>+</b> › <b>Browser</b>. Give it a name like <code>${escH(name)}</code>.</li>
+          <li>Leave <b>Local file</b> unticked and paste the link into <b>URL</b>.</li>
+          <li>Set <b>Width</b> <code>${w}</code> and <b>Height</b> <code>${h}</code>, then press OK. Drag the corners to resize; it stays sharp.</li>
+          ${["likes", "subs", "tips", "supporter"].includes(S.type) && S.fx.sound !== "none" ? `<li>Tick <b>Control audio via OBS</b> so the sound reaches your stream.</li>` : ""}
+          ${S.type === "timer" || needs(S.type).includes("yt") ? `<li>Set <b>Page permissions</b> to <b>Read access to OBS status information</b>, so it knows when you go live.</li>` : ""}
+        </ol>
+        <p class="small-note">Change anything later: come back, edit, copy the new link, and paste it over the old one in the source's Properties.</p>
+      </section>
+      <section class="grp"><h2>Edit a widget you already made</h2>
+        <p class="hint">Paste its link from OBS. Its settings load here so you can change them.</p>
+        <div class="field"><textarea class="linkbox" id="paste" placeholder="https://…/widgets/w.html#c=…" style="min-height:70px"></textarea></div>
+        <button type="button" class="btn small" id="load-link">Load these settings</button>
+        <span class="status" id="load-st" role="status" aria-live="polite" style="margin-left:8px"></span>
+      </section>`;
+  }
+
+  function missing(t) {
+    const m = [];
+    if (YT_ONLY.includes(t) && S.platform === "twitch") m.push("This widget works with YouTube only.");
+    else if (needs(t).includes("yt")) { if (!K.k) m.push("Add your YouTube API key in Connect."); if (!S.handle && !S.ch) m.push("Add your channel handle in Connect."); }
+    if (needs(t).includes("sl") && !K.t) m.push("Add your Streamlabs token in Connect.");
+    return m;
+  }
+
+  /* ---------------- render ---------------- */
+  const TABS = [["widget", "Widget"], ["look", "Look"], ["celebrate", "Celebration"], ["connect", "Connect"], ["obs", "Add to OBS"]];
+  function renderForm() {
+    $("#form").innerHTML = `
+      <div class="tabs" role="tablist">${TABS.map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === ui.tab}">${l}</button>`).join("")}</div>
+      <div class="panel" data-panel="widget">${widgetPanel()}</div>
+      <div class="panel" data-panel="look">${lookPanel()}</div>
+      <div class="panel" data-panel="celebrate">${celebPanel()}</div>
+      <div class="panel" data-panel="connect">${connectPanel()}</div>
+      <div class="panel" data-panel="obs">${obsPanel()}</div>
+      <p class="foot">Free for every streamer. Share this page with your friends; they make their own links with their own keys.</p>`;
+    showTab(ui.tab);
+    sync();
+  }
+  function showTab(k) {
+    ui.tab = k;
+    $$("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === k));
+    $$("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== k);
+    if (k === "obs") { const p = $('[data-panel="obs"]'), keep = $("#paste") ? $("#paste").value : ""; p.innerHTML = obsPanel(); $("#paste").value = keep; sync(); }
+  }
+  function sync() {
+    $$("[data-k]").forEach(el => {
+      const v = get(el.dataset.k);
+      if (el.type === "checkbox") el.checked = !!v;
+      else if (document.activeElement !== el) el.value = v ?? "";
+      if (el.type === "range") { const o = $(`[data-out="${el.dataset.k}"]`); if (o) o.textContent = fmtOut(Number(v), o.dataset.fmt); }
+    });
+    $$("[data-opts]").forEach(g => $$("button", g).forEach(b => b.setAttribute("aria-pressed", String(get(g.dataset.opts)) === b.dataset.v)));
+    $$("[data-color]").forEach(el => el.value = S.look[el.dataset.color]);
+    $$("[data-hex]").forEach(el => { if (document.activeElement !== el) el.value = S.look[el.dataset.hex]; });
+    $$("#skins [data-skin]").forEach(b => b.setAttribute("aria-pressed", b.dataset.skin === S.look.skin));
+    $$("#fonts [data-font]").forEach(b => b.setAttribute("aria-pressed", b.dataset.font === S.look.font));
+    const ky = $("#k-yt"), ks = $("#k-sl"), kr = $("#k-rem");
+    if (ky && document.activeElement !== ky) ky.value = K.k; if (ks && document.activeElement !== ks) ks.value = K.t; if (kr) kr.checked = K.remember;
+    document.body.classList.toggle("tw", S.platform === "twitch"); document.body.classList.toggle("yt", S.platform !== "twitch");
+    if (S.type === "socials") renderSocials();
+    const link = $("#link"); if (link) link.value = widgetURL() + hashFor(S.type, true);
+  }
+  function renderSocials() {
+    const el = $("#soc"); if (!el) return;
+    el.innerHTML = W().items.map((it, i) => `<div class="li">
+      <select data-si="${i}" aria-label="Icon for line ${i + 1}">${ICON_NAMES.map(([v, l]) => `<option value="${v}"${v === it.icon ? " selected" : ""}>${l}</option>`).join("")}</select>
+      <input type="text" data-sl="${i}" value="${escH(it.label)}" placeholder="LABEL" aria-label="Label ${i + 1}">
+      <input type="text" data-sv="${i}" value="${escH(it.value)}" placeholder="@yourname" aria-label="Value ${i + 1}">
+      <button type="button" class="icon-btn" data-sx="${i}" title="Remove" aria-label="Remove line ${i + 1}">×</button></div>`).join("");
+  }
+  function renderPicker() {
+    $("#picker").innerHTML = TYPES.map(([k, l, s]) => `<button type="button" class="key" data-type="${k}" aria-pressed="${k === S.type}">${l}<small>${YT_ONLY.includes(k) && S.platform === "twitch" ? "YouTube only" : s}</small></button>`).join("");
+  }
+
+  /* ---------------- preview ---------------- */
+  let pvT;
+  function preview() {
+    const [w, h] = SIZE[S.type];
+    $("#res").textContent = `${w} × ${h}`;
+    const real = ui.live && (K.k || K.t);
+    $("#mode").textContent = real ? "Real data" : "Example data";
+    $("#pv").style.aspectRatio = `${w} / ${h}`;
+    $("#monitor").dataset.bg = ui.bg;
+    const src = "w.html" + hashFor(S.type, real) + (real ? "" : "&demo=1");
+    if ($("#pv").getAttribute("src") !== src) $("#pv").setAttribute("src", src);
+    $("#acts").innerHTML = ["likes", "subs", "tips"].includes(S.type) ? `<button type="button" class="btn small" data-act="celebrate">Play celebration</button>`
+      : S.type === "supporter" ? `<button type="button" class="btn small" data-act="sub">Test new ${S.platform === "twitch" ? "follower" : "sub"}</button> <button type="button" class="btn small" data-act="tip">Test new tip</button>` : "";
+    $$("#bg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === ui.bg));
+    $("#live-wrap").hidden = !(K.k || K.t);
+    const n = YT_ONLY.includes(S.type) && S.platform === "twitch" ? "This widget needs YouTube. For Twitch, try Tip goal, Supporters, Timer or Socials." : "";
+    $("#notice").hidden = !n; $("#notice").textContent = n;
+  }
+  function changed(full) {
+    save();
+    if (full) { renderPicker(); renderForm(); }
+    else { sync(); }
+    clearTimeout(pvT); pvT = setTimeout(preview, 250);
+  }
+  const post = m => { try { $("#pv").contentWindow.postMessage(m, "*"); } catch {} };
+
+  /* ---------------- events ---------------- */
+  const REDRAW = /^(w\.\w+\.(mode|likes|sub|tip|top|step|start)|fx\.sound|platform)$/;
+  function bind() {
+    const F = $("#form");
+    F.addEventListener("input", e => {
+      const el = e.target;
+      if (el.id === "k-yt") { K.k = el.value.trim(); return changed(); }
+      if (el.id === "k-sl") { K.t = el.value.trim(); return changed(); }
+      if (el.dataset.k) {
+        const k = el.dataset.k;
+        let v = el.type === "checkbox" ? el.checked : el.value;
+        if (el.type === "number" || el.type === "range") v = el.value === "" ? (k.endsWith(".exact") ? "" : 0) : Number(el.value);
+        if (k === "ch") { const m = String(v).match(/UC[\w-]{22}/); v = m ? m[0] : String(v).trim(); }
+        if (k === "handle") { v = String(v).trim(); const m = v.match(/youtube\.com\/(@[\w.-]+)/); if (m) v = m[1]; else if (v && !v.startsWith("@")) v = "@" + v; }
+        set(k, v);
+        if (el.type === "range") { const o = $(`[data-out="${k}"]`); if (o) o.textContent = fmtOut(v, o.dataset.fmt); }
+        if (el.type === "checkbox" && REDRAW.test(k)) return changed(true);
+        if (/\.(start|step)$/.test(k)) { const n = el.closest(".grp") && $(".small-note", el.closest(".grp")); if (n) { const st = Number(get(k.replace(/\.\w+$/, ".start"))), sp = Number(get(k.replace(/\.\w+$/, ".step")) || 0); n.textContent = `Goals go ${st}, ${st + sp}, ${st + 2 * sp}… Set "Then add" to 0 for one goal only.`; } }
+      }
+      else if (el.dataset.color) { S.look[el.dataset.color] = el.value; const h = $(`[data-hex="${el.dataset.color}"]`); if (h) h.value = el.value; }
+      else if (el.dataset.hex) { let v = el.value.trim(); if (!v.startsWith("#")) v = "#" + v; if (!/^#[0-9a-f]{6}$/i.test(v)) return; S.look[el.dataset.hex] = v.toLowerCase(); $(`[data-color="${el.dataset.hex}"]`).value = v; }
+      else if (el.dataset.sl) W().items[+el.dataset.sl].label = el.value;
+      else if (el.dataset.sv) W().items[+el.dataset.sv].value = el.value;
+      else return;
+      changed();
+    });
+    F.addEventListener("change", e => {
+      const el = e.target;
+      if (el.id === "k-rem") { K.remember = el.checked; return changed(); }
+      if (el.dataset.si) { W().items[+el.dataset.si].icon = el.value; return changed(); }
+      if (el.type === "checkbox" && el.dataset.k) return;   // handled on input
+    });
+    F.addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.tab) { showTab(b.dataset.tab); return; }
+      const g = b.closest("[data-opts]");
+      if (g) { const k = g.dataset.opts, v = b.dataset.v; set(k, v); return changed(REDRAW.test(k)); }
+      if (b.dataset.skin) { const s = SKINS[b.dataset.skin]; S.look = { ...S.look, skin: b.dataset.skin, font: s.font, a: s.a, b: s.b, t: s.t, p: s.p, po: s.po }; return changed(); }
+      if (b.dataset.font) { S.look.font = b.dataset.font; return changed(); }
+      if (b.id === "skin-reset") { const s = SKINS[S.look.skin]; Object.assign(S.look, { a: s.a, b: s.b, t: s.t, p: s.p, po: s.po }); return changed(); }
+      if (b.id === "soc-add") { W().items.push({ icon: "at", label: "", value: "" }); return changed(); }
+      if (b.dataset.sx) { W().items.splice(+b.dataset.sx, 1); return changed(); }
+      if (b.id === "snd-test") return post({ spw: "sound" });
+      if (b.id === "test-yt") return testYT();
+      if (b.id === "copy") return copyLink();
+      if (b.id === "load-link") {
+        const ok = readLink($("#paste").value.trim());
+        if (!ok) { const st = $("#load-st"); st.textContent = "That doesn't look like a widget link. Copy it from the URL box in OBS."; st.className = "status err"; return; }
+        ui.tab = "widget"; changed(true); return;
+      }
+    });
+    F.addEventListener("keydown", e => { const l = e.target.closest("label[for]"); if (l && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); $("#" + l.htmlFor).click(); } });
+    F.addEventListener("change", e => {
+      if (e.target.id !== "pack-in") return;
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => { try { const d = JSON.parse(r.result), c = d.colors || {};
+        if (!c.acc) throw 0;
+        Object.assign(S.look, { a: c.acc, b: c.acc2 || c.acc, t: c.text || "#ffffff", p: c.bg || "#000000" });
+        changed(); } catch { alert("That file isn't a Stream Pack settings file."); } e.target.value = ""; };
+      r.readAsText(f);
+    });
+  }
+  $("#picker").addEventListener("click", e => { const b = e.target.closest("[data-type]"); if (!b) return; S.type = b.dataset.type; changed(true); });
+  $("#bg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; ui.bg = b.dataset.v; preview(); });
+  $("#live").addEventListener("change", e => { ui.live = e.target.checked; preview(); });
+  $("#acts").addEventListener("click", e => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    const a = b.dataset.act, names = ["Rohit_OP", "Simran", "GhostAkm", "Pixel Jatt", "Noob Master", "Aarav"], nm = names[Math.floor(Math.random() * names.length)];
+    if (a === "celebrate") post({ spw: "celebrate" });
+    else if (a === "sub") post({ spw: "event", e: { kind: "sub", name: nm, id: "t" + Date.now() } });
+    else { const amt = [99, 199, 500, 1000, 2000][Math.floor(Math.random() * 5)]; post({ spw: "event", e: { kind: "tip", name: nm, amount: amt, display: (S.w.tips.cur || "") + amt.toLocaleString(S.locale), id: "t" + Date.now() } }); }
+  });
+  $("#go-obs").addEventListener("click", () => { showTab("obs"); $("#form").scrollIntoView({ block: "start" }); });
+
+  async function copyLink() {
+    const t = $("#link").value, st = $("#copy-st");
+    try { await navigator.clipboard.writeText(t); }
+    catch { $("#link").select(); try { document.execCommand("copy"); } catch {} }
+    st.textContent = "Copied. Paste it into the URL box in OBS."; st.className = "status ok";
+  }
+
+  /* ---------------- check a YouTube key ---------------- */
+  async function testYT() {
+    const out = $("#test-out"), btn = $("#test-yt");
+    const say = (t, cls) => { out.textContent = t; out.className = "test-out" + (cls ? " " + cls : ""); };
+    const key = K.k;
+    if (!key) return say("Paste your API key first.", "err");
+    if (!/^AIza[\w-]{30,}$/.test(key)) return say("That doesn't look like an API key. It starts with AIza and is about 39 characters.", "err");
+    const ch = S.ch, handle = S.handle;
+    if (!/^UC[\w-]{22}$/.test(ch || "") && !(handle || "").startsWith("@")) return say("Add your channel handle (like @yourname) first.", "err");
+    btn.disabled = true; say("Checking…");
+    try {
+      const q = /^UC[\w-]{22}$/.test(ch || "") ? "id=" + encodeURIComponent(ch) : "forHandle=" + encodeURIComponent(handle);
+      const d = await (await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&${q}&key=${encodeURIComponent(key)}`)).json();
+      if (d.error) {
+        const why = ((d.error.errors && d.error.errors[0] && d.error.errors[0].reason) || "") + " " + (d.error.message || "");
+        if (/keyInvalid|API key not valid/i.test(why)) say("Google says this key isn't valid. Copy it again from Credentials, with no spaces.", "err");
+        else if (/accessNotConfigured|SERVICE_DISABLED|has not been used|disabled/i.test(why)) say("The key works, but YouTube Data API v3 isn't switched on. Do step 3 (Enable), wait 2 minutes, test again.", "err");
+        else if (/referer|blocked|restricted|API_KEY_/i.test(why)) say("The key is blocked by its restrictions. Set Application restrictions to None (step 6).", "err");
+        else if (/quota/i.test(why)) say("This key has used up today's free limit. It resets at midnight Pacific time.", "err");
+        else say("Google returned an error: " + (d.error.message || "unknown").slice(0, 140), "err");
+      } else if (!d.items || !d.items.length) say("The key works, but no channel was found. Check your handle.", "err");
+      else {
+        const it = d.items[0];
+        S.ch = it.id; changed();
+        const subs = it.statistics && !it.statistics.hiddenSubscriberCount ? ` (${Number(it.statistics.subscriberCount).toLocaleString(S.locale)} subscribers)` : "";
+        say(`It works! Connected to "${it.snippet.title}"${subs}.`, "ok");
+      }
+    } catch { say("Couldn't reach Google. Check your internet and try again.", "err"); }
+    btn.disabled = false;
+  }
+
+  /* ---------------- start ---------------- */
+  if (location.hash.includes("c=") && readLink(location.href)) history.replaceState(null, "", location.pathname);
+  renderPicker(); renderForm(); bind(); preview();
+})();
+</script>
+</body></html>
