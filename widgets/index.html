@@ -146,6 +146,13 @@ input:focus, textarea:focus, select:focus { border-color: var(--focus); outline:
 .status.ok { color: #8fe3a8; } .status.err { color: #ffb4a8; }
 .foot { padding: 18px 24px 28px; color: var(--muted); font-size: 13px; }
 body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
+.range.auto { grid-template-columns: 1fr 64px auto; }
+.color.auto { grid-template-columns: 34px 1fr auto; }
+.sample { background: var(--ink); border: 1px solid var(--line2); border-radius: 8px; padding: 12px 16px; margin: 0 0 14px; overflow: hidden; }
+.sample b { display: block; font-size: 34px; line-height: 1.1; white-space: nowrap; }
+.sample span { display: block; color: var(--muted); font-size: 16px; margin-top: 4px; }
+textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
+.picker .key { min-width: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -153,7 +160,7 @@ body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
 <header class="top">
   <div class="brand">
     <h1>Stream Widgets</h1>
-    <p>Goal bars, live counters, timers and tickers for OBS. Pick one, make it yours, and paste the link into OBS. Made by <b>SHAHZON</b>.</p>
+    <p>Goal bars, live counters, timers, clocks, tickers and name plates for OBS. Pick one, make it yours, and paste the link into OBS. Made by <b>SHAHZON</b>.</p>
   </div>
   <a class="btn" href="../">Stream Pack Builder</a>
   <button class="btn primary" id="go-obs" type="button">Get my OBS link</button>
@@ -183,7 +190,12 @@ body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
   /* Keep DEF in step with DEF inside w.html. New options: add them in both, with a default. */
   const DEF = {
     v: 1, type: "likes", platform: "youtube", handle: "", ch: "", poll: 20, locale: "en-IN",
-    look: { skin: "neon", font: "orbitron", a: "#00e5ff", b: "#b14dff", t: "#ffffff", p: "#0a0718", po: .85, icon: true },
+    look: { skin: "neon", font: "orbitron", a: "#00e5ff", b: "#b14dff", t: "#ffffff", p: "#0a0718", po: .85, icon: true,
+            r: "", anim: "none", idle: "none",
+            text: { scale: 1, lab: { font: "", size: 1, w: "", i: "", ls: "", lh: "", tt: "", c: "" },
+                    num: { font: "", size: 1, w: "", i: "", ls: "", lh: "", tt: "", c: "" },
+                    ban: { font: "", size: 1, w: "", i: "", ls: "", lh: "", tt: "", c: "" },
+                    fill: "solid", stroke: 0, strokeC: "#000000", shadow: "skin", shadowC: "#000000" } },
     fx: { style: "sparks", banner: true, sound: "chime", vol: .6, url: "" },
     w: {
       likes:   { label: "LIKE GOAL", start: 100, step: 100, big: "{goal} LIKES!", small: "Goal smashed! Next: {next}", hot: true },
@@ -196,16 +208,44 @@ body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
         { icon: "camera", label: "INSTAGRAM", value: "@yourname" },
         { icon: "chat", label: "DISCORD", value: "discord.gg/yourname" },
         { icon: "coin", label: "TIP / UPI", value: "yourname@upi" } ] },
-      supporter: { secs: 6, sub: true, tip: true, top: true, subLabel: "Latest sub", tipLabel: "Latest tip", topLabel: "Top tip" }
+      supporter: { secs: 6, sub: true, tip: true, top: true, subLabel: "Latest sub", tipLabel: "Latest tip", topLabel: "Top tip" },
+      ticker:    { label: "NEWS", icon: "bolt", text: "Welcome to the stream!\nDrop a like if you're enjoying it\nFollow me on Instagram @yourname", speed: 120 },
+      clock:     { label: "Local time", h12: true, secs: false, date: false, tz: "" },
+      lower:     { name: "YOUR NAME", sub: "Playing BGMI tonight\nSquad up: drop your ID in chat", icon: "controller", secs: 6 },
+      subcount:  { label: "Subscribers", pop: true }
     }
   };
   const TYPES = [
     ["likes", "Like goal", "YouTube"], ["subs", "Sub goal", "YouTube"], ["tips", "Tip goal", "Streamlabs"],
-    ["viewers", "Viewers", "YouTube"], ["timer", "Timer", "No keys needed"], ["socials", "Socials", "No keys needed"], ["supporter", "Supporters", "Streamlabs"]
+    ["viewers", "Viewers", "YouTube"], ["subcount", "Sub counter", "YouTube"], ["timer", "Timer", "No keys needed"], ["clock", "Clock", "No keys needed"],
+    ["socials", "Socials", "No keys needed"], ["ticker", "Scrolling ticker", "No keys needed"], ["lower", "Name plate", "No keys needed"], ["supporter", "Supporters", "Streamlabs"]
   ];
-  const SIZE = { likes: [800, 300], subs: [800, 300], tips: [800, 300], viewers: [560, 150], timer: [560, 150], socials: [760, 150], supporter: [800, 160] };
-  const NEEDS = { likes: ["yt"], subs: ["yt"], tips: ["sl"], viewers: ["yt"], timer: [], socials: [], supporter: ["sl"] };
-  const YT_ONLY = ["likes", "subs", "viewers"];
+  const SIZE = { likes: [800, 300], subs: [800, 300], tips: [800, 300], viewers: [560, 150], timer: [560, 150], socials: [760, 150], supporter: [800, 160],
+    ticker: [1400, 140], clock: [560, 150], lower: [820, 190], subcount: [560, 150] };
+  const NEEDS = { likes: ["yt"], subs: ["yt"], tips: ["sl"], viewers: ["yt"], timer: [], socials: [], supporter: ["sl"], ticker: [], clock: [], lower: [], subcount: ["yt"] };
+  const YT_ONLY = ["likes", "subs", "viewers", "subcount"];
+  /* every font you can pick, with the weights Google Fonts has ("a..b" = variable) */
+  const FONT_LIB = [
+    ["Gaming & display", [["Saira Condensed", "400;500;600;700;800;900"], ["Teko", "300..700"], ["Russo One", "400"], ["Anton", "400"], ["Orbitron", "400..900"],
+      ["Bungee", "400"], ["Bebas Neue", "400"], ["Oswald", "200..700"], ["Black Ops One", "400"], ["Bangers", "400"], ["Audiowide", "400"], ["Staatliches", "400"],
+      ["Big Shoulders Display", "100..900"], ["Barlow Condensed", "400;500;600;700;800;900"], ["Michroma", "400"], ["Squada One", "400"], ["Rubik Mono One", "400"],
+      ["Archivo Black", "400"], ["Bowlby One", "400"], ["Kanit", "400;500;600;700;800;900"], ["Saira", "100..900"], ["Exo 2", "100..900"],
+      ["Chakra Petch", "300;400;500;600;700"], ["Rajdhani", "300;400;500;600;700"], ["Quantico", "400;700"], ["Play", "400;700"],
+      ["Bai Jamjuree", "200;300;400;500;600;700"], ["Titillium Web", "200;300;400;600;700;900"]]],
+    ["Retro & pixel", [["Pixelify Sans", "400..700"], ["Press Start 2P", "400"], ["Silkscreen", "400;700"], ["VT323", "400"], ["Monoton", "400"], ["Share Tech Mono", "400"], ["JetBrains Mono", "100..800"]]],
+    ["Fun & handwritten", [["Fredoka", "300..700"], ["Lilita One", "400"], ["Luckiest Guy", "400"], ["Righteous", "400"], ["Permanent Marker", "400"], ["Creepster", "400"],
+      ["Pacifico", "400"], ["Lobster", "400"], ["Caveat", "400..700"], ["Dancing Script", "400..700"], ["Rowdies", "300;400;700"], ["Baloo 2", "400..800"]]],
+    ["Clean & simple", [["Inter", "100..900"], ["Montserrat", "100..900"], ["Poppins", "100;200;300;400;500;600;700;800;900"], ["Sora", "100..800"], ["Nunito", "200..1000"],
+      ["Rubik", "300..900"], ["Barlow", "100;200;300;400;500;600;700;800;900"], ["Space Grotesk", "300..700"], ["Archivo", "100..900"]]],
+    ["Elegant", [["Cinzel", "400..900"], ["Playfair Display", "400..900"]]],
+    ["Hindi friendly (Devanagari)", [["Hind", "300;400;500;600;700"], ["Mukta", "200;300;400;500;600;700;800"], ["Rozha One", "400"], ["Kalam", "300;400;700"], ["Yatra One", "400"]]]
+  ];
+  const FONT_W = Object.fromEntries(FONT_LIB.flatMap(([, l]) => l));
+  const famQ = n => "family=" + n.replace(/ /g, "+") + (FONT_W[n] && FONT_W[n] !== "400" ? ":wght@" + FONT_W[n] : "");
+  const fontWeights = n => { const w = FONT_W[n]; if (!w) return [100, 200, 300, 400, 500, 600, 700, 800, 900];
+    if (w.includes("..")) { const [a, b] = w.split("..").map(Number), o = []; for (let x = Math.ceil(a / 100) * 100; x <= Math.min(900, b); x += 100) o.push(x); return o; }
+    return w.split(";").map(Number); };
+  const ROLES = [["lab", "Labels (small text, tags)"], ["num", "Main text and numbers"], ["ban", "Celebration text"]];
   const SKINS = {
     neon:     { label: "Neon", note: "Glowing outline", font: "orbitron", a: "#00e5ff", b: "#b14dff", t: "#ffffff", p: "#0a0718", po: .85 },
     blade:    { label: "Blade", note: "Sharp, angled esports card", font: "teko", a: "#e3121b", b: "#ff5a1f", t: "#ffffff", p: "#16080a", po: .92 },
@@ -213,7 +253,10 @@ body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
     pixel:    { label: "Pixel", note: "Retro 8-bit blocks", font: "pixelify", a: "#ffd23f", b: "#3ddc84", t: "#ffffff", p: "#1b1b2f", po: 1 },
     clean:    { label: "Clean", note: "Simple and flat", font: "rajdhani", a: "#ff4757", b: "#ff7f50", t: "#ffffff", p: "#111318", po: .88 },
     cozy:     { label: "Cozy", note: "Round and pastel", font: "fredoka", a: "#ffb4a2", b: "#e5989b", t: "#fff4ec", p: "#2a1f33", po: .9 },
-    terminal: { label: "Terminal", note: "Hacker console", font: "mono", a: "#00ffa3", b: "#00b3ff", t: "#e6fff6", p: "#020409", po: .88 }
+    terminal: { label: "Terminal", note: "Hacker console", font: "mono", a: "#00ffa3", b: "#00b3ff", t: "#e6fff6", p: "#020409", po: .88 },
+    gradient: { label: "Gradient", note: "Bold colour-filled card", font: "anton", a: "#ff3fd8", b: "#6a5cff", t: "#ffffff", p: "#120a24", po: 1 },
+    comic:    { label: "Comic", note: "Sticker with a thick outline", font: "bungee", a: "#ffd23f", b: "#ff4f8b", t: "#ffffff", p: "#1d1d1d", po: 1 },
+    minimal:  { label: "Minimal", note: "Just the text, no card", font: "rajdhani", a: "#ffd23f", b: "#ff7f50", t: "#ffffff", p: "#000000", po: 0 }
   };
   const FONTS = { orbitron: ["Orbitron", 800], teko: ["Teko", 600], rajdhani: ["Rajdhani", 700], archivo: ["Archivo", 800], fredoka: ["Fredoka", 600],
     bungee: ["Bungee", 400], pixelify: ["Pixelify Sans", 700], anton: ["Anton", 400], mono: ["Share Tech Mono", 400], nunito: ["Nunito", 900] };
@@ -234,7 +277,7 @@ body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
   const ST = "spw-builder:v1", KS = "spw-builder:keys";
   let S = (() => { try { const v = JSON.parse(localStorage.getItem(ST)); if (v) return merge(clone(DEF), v); } catch {} return clone(DEF); })();
   let K = (() => { try { const v = JSON.parse(localStorage.getItem(KS)); if (v) return { k: v.k || "", t: v.t || "", remember: true }; } catch {} return { k: "", t: "", remember: false }; })();
-  const ui = { tab: "widget", bg: "game", live: false };
+  const ui = { tab: "widget", bg: "game", live: false, role: "num" };
   let saveT;
   function save() {
     clearTimeout(saveT);
@@ -280,8 +323,17 @@ body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
   const N = (k, label, extra = "") => `<label class="field"><span>${label}</span><input type="number" data-k="${k}" ${extra}></label>`;
   const C = (k, label) => `<label class="check"><input type="checkbox" data-k="${k}"><span>${label}</span></label>`;
   const opts = (k, list, cls = "") => `<div class="opts ${cls}" data-opts="${k}">${list.map(([v, l, s]) => `<button type="button" data-v="${v}">${l}${s ? `<small>${s}</small>` : ""}</button>`).join("")}</div>`;
-  const R = (k, label, min, max, step, fmt) => `<div class="field"><span>${label}</span></div><div class="range"><input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}" aria-label="${escH(label)}"><output data-out="${k}" data-fmt="${fmt}"></output></div>`;
-  const fmtOut = (v, f) => f === "%" ? Math.round(v * 100) + "%" : f === "s" ? v + " s" : v;
+  const R = (k, label, min, max, step, fmt, def) => `<div class="field"><span>${label}</span></div><div class="range${def != null ? " auto" : ""}"><input type="range" data-k="${k}" min="${min}" max="${max}" step="${step}" aria-label="${escH(label)}"${def != null ? ` data-def="${def}"` : ""}><output data-out="${k}" data-fmt="${fmt}"></output>${def != null ? `<button type="button" class="btn small" data-auto="${k}">Auto</button>` : ""}</div>`;
+  const fmtOut = (v, f) => v === "" || v == null || (typeof v === "number" && isNaN(v)) ? "Auto" : f === "%" ? Math.round(v * 100) + "%" : f === "s" ? v + " s" : f === "px" ? v + " px" : f === "em" ? Number(v).toFixed(2) + " em" : f === "lh" ? Number(v).toFixed(2) : f === "sp" ? v + " px/s" : v;
+  const CP = (k, label, auto) => `<div class="color${auto ? " auto" : ""}"><input type="color" data-kc="${k}" aria-label="${escH(label)}"><div><b>${label}</b><input type="text" data-kch="${k}" maxlength="7" aria-label="${escH(label)} hex"></div>${auto ? `<button type="button" class="btn small" data-auto="${k}">Auto</button>` : ""}</div>`;
+  const fontOpts = def => `${def ? `<option value="">${def}</option>` : ""}${FONT_LIB.map(([g, l]) => `<optgroup label="${g}">${l.map(([n]) => `<option value="${n}">${n}</option>`).join("")}</optgroup>`).join("")}<option value="__any">Other Google font (type its name)…</option>`;
+  const loaded = new Set();
+  function loadFonts(names) {
+    const need = names.filter(n => n && !loaded.has(n) && /^[\w .-]+$/.test(n)); if (!need.length) return;
+    need.forEach(n => loaded.add(n));
+    for (let i = 0; i < need.length; i += 20) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "https://fonts.googleapis.com/css2?" + need.slice(i, i + 20).map(famQ).join("&") + "&display=swap"; document.head.appendChild(l); }
+  }
+  const mainFam = () => FONTS[S.look.font] ? FONTS[S.look.font][0] : S.look.font;
 
   /* ---------------- widget settings, per type ---------------- */
   function widgetPanel() {
@@ -351,15 +403,90 @@ body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
         ${R(p + "secs", "Seconds each", 3, 20, 1, "s")}
         <p class="small-note">Top tip resets when OBS starts a new stream.</p>
       </section>`;
+    const icons = `<select data-k="${p}icon">${ICON_NAMES.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>`;
+    if (t === "subcount") return `
+      <section class="grp"><h2>Subscriber counter</h2>
+        <p class="hint">Your channel's subscriber count, checked once a minute. YouTube rounds big numbers (12.4K), so this shows what YouTube shows.</p>
+        ${T(p + "label", "Label", "Subscribers")}
+        ${C(p + "pop", "Pop, sparkle and play the sound when it goes up")}
+      </section>`;
+    if (t === "clock") return `
+      <section class="grp"><h2>Clock</h2>
+        <p class="hint">The current time, great for IRL and late-night streams.</p>
+        ${T(p + "label", "Label", "Local time")}
+        ${C(p + "h12", "12-hour clock (9:30 PM)")}
+        ${C(p + "secs", "Show seconds")}
+        ${C(p + "date", "Show the date instead of the label")}
+        <label class="field"><span>Time zone</span><select data-k="${p}tz">${[["", "My PC's time zone"], ["Asia/Kolkata", "India"], ["Asia/Dubai", "Dubai"], ["Europe/London", "London"], ["Europe/Amsterdam", "Amsterdam"], ["Europe/Madrid", "Madrid"], ["America/Toronto", "Toronto"], ["America/New_York", "New York"], ["America/Los_Angeles", "Los Angeles"], ["Australia/Sydney", "Sydney"], ["Asia/Singapore", "Singapore"], ["Asia/Tokyo", "Tokyo"]].map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select></label>
+      </section>`;
+    if (t === "ticker") return `
+      <section class="grp"><h2>Scrolling ticker</h2>
+        <p class="hint">A news-style line of text that scrolls across the screen. Put it along the bottom of your stream.</p>
+        <div class="row">${T(p + "label", "Tag at the start (empty hides it)", "NEWS")}<label class="field"><span>Icon</span>${icons}</label></div>
+        <label class="field"><span>Messages (one per line)</span><textarea data-k="${p}text" rows="5"></textarea></label>
+        ${R(p + "speed", "Speed", 40, 300, 10, "sp")}
+      </section>`;
+    if (t === "lower") return `
+      <section class="grp"><h2>Name plate</h2>
+        <p class="hint">A lower third with your name and a line under it. Several lines take turns.</p>
+        ${T(p + "name", "Name", "YOUR NAME")}
+        <label class="field"><span>Lines under your name (one per line)</span><textarea data-k="${p}sub" rows="3"></textarea></label>
+        <label class="field"><span>Icon</span>${icons}</label>
+        ${R(p + "secs", "Seconds per line", 2, 20, 1, "s")}
+      </section>`;
     return "";
+  }
+
+  function textPanel() {
+    const L = S.look, TX = L.text, r = ui.role, p = `look.text.${r}.`, o = TX[r];
+    const rf = o.font || "", anyR = rf && !FONT_W[rf];
+    const wf = rf || mainFam();
+    return `
+      <section class="grp"><h2>Main font</h2>
+        <p class="hint">Used for all the text on your widgets unless you change a kind of text below.</p>
+        <div class="fonts" id="fonts">${Object.entries(FONTS).map(([k, f]) => `<button type="button" class="font" data-font="${k}"><span class="s" style="font-family:'${f[0]}';font-weight:${f[1]}">1,248 LIKES</span><small>${f[0]}</small></button>`).join("")}</div>
+        <label class="field"><span>Or pick from all ${FONT_LIB.reduce((n, [, l]) => n + l.length, 0)} fonts</span><select id="main-font">${fontOpts("Choose a font…")}</select></label>
+        <label class="field" id="main-any"${FONTS[L.font] || FONT_W[L.font] ? " hidden" : ""}><span>Google font name</span><input type="text" id="main-any-in" placeholder="For example: Lexend" spellcheck="false"></label>
+        <div class="sample" id="sample"><b>1,248 LIKES</b><span>Latest tip · Simran</span></div>
+        ${R("look.text.scale", "All text size", .6, 1.6, .05, "%")}
+      </section>
+      <section class="grp"><h2>Fine-tune each text</h2>
+        <p class="hint">Pick a kind of text, then change its font, size, weight, spacing, case and colour.</p>
+        <div class="opts three" id="role-pick">${ROLES.map(([k, l]) => `<button type="button" data-role="${k}" aria-pressed="${k === r}">${l}</button>`).join("")}</div>
+        <div class="row">
+          <label class="field"><span>Font</span><select data-rf>${fontOpts("Same as main font")}</select></label>
+          <label class="field"><span>Weight</span><select data-k="${p}w"><option value="">Auto</option>${fontWeights(wf).map(w => `<option value="${w}">${w}</option>`).join("")}</select></label>
+        </div>
+        <label class="field"${anyR ? "" : " hidden"} id="role-any"><span>Google font name</span><input type="text" data-rfany placeholder="For example: Lexend" spellcheck="false" value="${escH(anyR ? rf : "")}"></label>
+        ${R(p + "size", "Size", .4, 2.5, .05, "%")}
+        <div class="row">
+          <label class="field"><span>Style</span><select data-k="${p}i"><option value="">Auto</option><option value="normal">Upright</option><option value="italic">Italic</option></select></label>
+          <label class="field"><span>Letter case</span><select data-k="${p}tt"><option value="">As typed</option><option value="uppercase">UPPERCASE</option><option value="lowercase">lowercase</option><option value="capitalize">Title Case</option></select></label>
+        </div>
+        ${R(p + "ls", "Letter spacing", -.1, .6, .01, "em", 0)}
+        ${R(p + "lh", "Line height", .6, 2, .05, "lh", 1)}
+        <div class="colors">${CP(p + "c", "Colour", true)}</div>
+        <button type="button" class="btn small" id="role-reset">Reset this text</button>
+      </section>
+      <section class="grp"><h2>Text effects</h2>
+        <div class="field"><span>Fill for numbers and main text</span></div>
+        ${opts("look.text.fill", [["solid", "Solid"], ["gradient", "Gradient", "main → second colour"]], "three")}
+        ${R("look.text.stroke", "Outline thickness", 0, 8, 1, "px")}
+        <div class="colors">${CP("look.text.strokeC", "Outline colour")}</div>
+        <div class="field"><span>Shadow</span></div>
+        ${opts("look.text.shadow", [["skin", "Style's own"], ["none", "None"], ["hard", "Hard"], ["soft", "Soft"], ["glow", "Glow"], ["long", "3D"]], "three")}
+        <div class="colors">${CP("look.text.shadowC", "Shadow colour")}</div>
+      </section>`;
   }
 
   function lookPanel() {
     const sw = k => { const s = SKINS[k], f = FONTS[s.font];
-      const r = k === "cozy" ? "99px" : k === "glass" ? "14px" : k === "neon" ? "8px" : k === "clean" ? "6px" : "0";
+      const r = k === "cozy" ? "99px" : k === "glass" ? "14px" : k === "neon" || k === "comic" || k === "gradient" ? "8px" : k === "clean" ? "6px" : "0";
       const border = k === "neon" ? `border:2px solid ${s.a};box-shadow:0 0 10px ${s.a}88` : k === "pixel" ? "border:3px solid #000;box-shadow:3px 3px 0 #000" : k === "terminal" ? `border:1px solid ${s.a}` : k === "cozy" ? `border:2px solid ${s.a}99` : k === "glass" ? "border:1px solid rgba(255,255,255,.3)" : "";
+      const bg = k === "gradient" ? `linear-gradient(120deg,${s.a},${s.b})` : k === "minimal" ? "transparent" : s.p;
+      const extra = k === "comic" ? `border:3px solid #000;box-shadow:3px 3px 0 ${s.a};` : k === "minimal" ? "text-shadow:0 2px 3px #000;" : "";
       const clip = k === "blade" ? "clip-path:polygon(0 0,100% 0,100% 65%,calc(100% - 10px) 100%,0 100%)" : "";
-      return `<span class="sw" style="background:${s.p};color:${s.t};border-radius:${r};${border};${clip};font-family:'${f[0]}';font-weight:${f[1]};${k === "blade" ? "font-style:italic;" : ""}">
+      return `<span class="sw" style="background:${bg};color:${s.t};border-radius:${r};${border};${extra}${clip};font-family:'${f[0]}';font-weight:${f[1]};${k === "blade" ? "font-style:italic;" : ""}">
         <i style="background:linear-gradient(160deg,${s.a},${s.b});border-radius:${k === "cozy" || k === "glass" ? "50%" : "3px"}"></i>92
         <b style="background:linear-gradient(90deg,${s.b},${s.a});border-radius:${r === "0" ? 0 : "9px"}"></b></span>`; };
     return `
@@ -376,9 +503,16 @@ body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
         </div>
         <input type="file" id="pack-in" accept="application/json,.json" hidden>
         <p class="small-note">Stream Pack: in the pack builder open <b>Save &amp; keys</b>, press <b>Save settings file</b>, then load that file here.</p>
-        <div class="field"><span>Font</span></div>
-        <div class="fonts" id="fonts">${Object.entries(FONTS).map(([k, f]) => `<button type="button" class="font" data-font="${k}"><span class="s" style="font-family:'${f[0]}';font-weight:${f[1]}">1,248 LIKES</span><small>${f[0]}</small></button>`).join("")}</div>
+        <p class="small-note">Fonts and every text setting are in the <b>Text</b> tab.</p>
         ${C("look.icon", "Show the icon box")}
+      </section>
+      <section class="grp"><h2>Shape and motion</h2>
+        ${R("look.r", "Corner roundness", 0, 60, 1, "px", 12)}
+        <div class="field"><span>How it appears</span></div>
+        ${opts("look.anim", [["none", "Just shows"], ["slide", "Slide in"], ["drop", "Drop in"], ["pop", "Pop"], ["fade", "Fade"], ["flip", "Flip"]], "three")}
+        <div class="field"><span>While it's on screen</span></div>
+        ${opts("look.idle", [["none", "Still"], ["float", "Float"], ["pulse", "Pulse"], ["sway", "Sway"], ["glow", "Glow"]], "three")}
+        <p class="small-note">The preview reloads when you change these, so you see the entrance each time.</p>
       </section>`;
   }
 
@@ -479,12 +613,13 @@ body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
   }
 
   /* ---------------- render ---------------- */
-  const TABS = [["widget", "Widget"], ["look", "Look"], ["celebrate", "Celebration"], ["connect", "Connect"], ["obs", "Add to OBS"]];
+  const TABS = [["widget", "Widget"], ["look", "Look"], ["text", "Text"], ["celebrate", "Celebration"], ["connect", "Connect"], ["obs", "Add to OBS"]];
   function renderForm() {
     $("#form").innerHTML = `
       <div class="tabs" role="tablist">${TABS.map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === ui.tab}">${l}</button>`).join("")}</div>
       <div class="panel" data-panel="widget">${widgetPanel()}</div>
       <div class="panel" data-panel="look">${lookPanel()}</div>
+      <div class="panel" data-panel="text">${textPanel()}</div>
       <div class="panel" data-panel="celebrate">${celebPanel()}</div>
       <div class="panel" data-panel="connect">${connectPanel()}</div>
       <div class="panel" data-panel="obs">${obsPanel()}</div>
@@ -502,9 +637,19 @@ body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
     $$("[data-k]").forEach(el => {
       const v = get(el.dataset.k);
       if (el.type === "checkbox") el.checked = !!v;
+      else if (el.type === "range" && (v === "" || v == null) && el.dataset.def != null) el.value = el.dataset.def;
       else if (document.activeElement !== el) el.value = v ?? "";
-      if (el.type === "range") { const o = $(`[data-out="${el.dataset.k}"]`); if (o) o.textContent = fmtOut(Number(v), o.dataset.fmt); }
+      if (el.type === "range") { const o = $(`[data-out="${el.dataset.k}"]`); if (o) o.textContent = fmtOut(v === "" || v == null ? "" : Number(v), o.dataset.fmt); }
     });
+    $$("[data-kc]").forEach(el => { const v = get(el.dataset.kc); el.value = /^#[0-9a-f]{6}$/i.test(v || "") ? v : "#ffffff"; });
+    $$("[data-kch]").forEach(el => { if (document.activeElement !== el) el.value = get(el.dataset.kch) || "Auto"; });
+    const mf = $("#main-font");
+    if (mf) { const f = S.look.font; mf.value = FONT_W[f] ? f : FONTS[f] ? "" : "__any"; $("#main-any").hidden = !!(FONTS[f] || FONT_W[f]);
+      const mi = $("#main-any-in"); if (mi && document.activeElement !== mi && !FONTS[f] && !FONT_W[f]) mi.value = f;
+      const smp = $("#sample"); loadFonts([mainFam(), ...ROLES.map(([r]) => S.look.text[r].font)]);
+      smp.querySelector("b").style.fontFamily = `"${S.look.text.num.font || mainFam()}", sans-serif`;
+      smp.querySelector("span").style.fontFamily = `"${S.look.text.lab.font || mainFam()}", sans-serif`; }
+    const rf = $("[data-rf]"); if (rf) { const f = S.look.text[ui.role].font || ""; rf.value = !f ? "" : FONT_W[f] ? f : "__any"; }
     $$("[data-opts]").forEach(g => $$("button", g).forEach(b => b.setAttribute("aria-pressed", String(get(g.dataset.opts)) === b.dataset.v)));
     $$("[data-color]").forEach(el => el.value = S.look[el.dataset.color]);
     $$("[data-hex]").forEach(el => { if (document.activeElement !== el) el.value = S.look[el.dataset.hex]; });
@@ -575,6 +720,10 @@ body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
       }
       else if (el.dataset.color) { S.look[el.dataset.color] = el.value; const h = $(`[data-hex="${el.dataset.color}"]`); if (h) h.value = el.value; }
       else if (el.dataset.hex) { let v = el.value.trim(); if (!v.startsWith("#")) v = "#" + v; if (!/^#[0-9a-f]{6}$/i.test(v)) return; S.look[el.dataset.hex] = v.toLowerCase(); $(`[data-color="${el.dataset.hex}"]`).value = v; }
+      else if (el.dataset.kc) { set(el.dataset.kc, el.value); const h = $(`[data-kch="${el.dataset.kc}"]`); if (h) h.value = el.value; }
+      else if (el.dataset.kch) { let v = el.value.trim(); if (!v.startsWith("#")) v = "#" + v; if (!/^#[0-9a-f]{6}$/i.test(v)) return; set(el.dataset.kch, v.toLowerCase()); const c = $(`[data-kc="${el.dataset.kch}"]`); if (c) c.value = v; }
+      else if (el.dataset.rfany != null) S.look.text[ui.role].font = el.value.replace(/[^\w .-]/g, "").trim();
+      else if (el.id === "main-any-in") { const v = el.value.replace(/[^\w .-]/g, "").trim(); if (!v) return; S.look.font = v; }
       else if (el.dataset.sl) W().items[+el.dataset.sl].label = el.value;
       else if (el.dataset.sv) W().items[+el.dataset.sv].value = el.value;
       else return;
@@ -584,15 +733,22 @@ body.tw .only-yt, body.yt .only-tw, [hidden] { display: none !important; }
       const el = e.target;
       if (el.id === "k-rem") { K.remember = el.checked; return changed(); }
       if (el.dataset.si) { W().items[+el.dataset.si].icon = el.value; return changed(); }
+      if (el.id === "main-font") { if (el.value === "__any") { $("#main-any").hidden = false; $("#main-any-in").focus(); return; } if (el.value) { S.look.font = el.value; return changed(true); } return; }
+      if (el.dataset.rf != null) { if (el.value === "__any") { $("#role-any").hidden = false; $("[data-rfany]").focus(); return; } S.look.text[ui.role].font = el.value; return changed(true); }
       if (el.type === "checkbox" && el.dataset.k) return;   // handled on input
     });
     F.addEventListener("click", e => {
       const b = e.target.closest("button"); if (!b) return;
       if (b.dataset.tab) { showTab(b.dataset.tab); return; }
       const g = b.closest("[data-opts]");
-      if (g) { const k = g.dataset.opts, v = b.dataset.v; set(k, v); return changed(REDRAW.test(k)); }
+      if (g) { const k = g.dataset.opts, v = b.dataset.v; set(k, v);
+        if (k === "look.text.shadow") { const t = S.look.text; if (v === "glow" && t.shadowC === "#000000") t.shadowC = S.look.a; else if (v !== "glow" && t.shadowC === S.look.a) t.shadowC = "#000000"; }
+        return changed(REDRAW.test(k)); }
       if (b.dataset.skin) { const s = SKINS[b.dataset.skin]; S.look = { ...S.look, skin: b.dataset.skin, font: s.font, a: s.a, b: s.b, t: s.t, p: s.p, po: s.po }; return changed(); }
-      if (b.dataset.font) { S.look.font = b.dataset.font; return changed(); }
+      if (b.dataset.font) { S.look.font = b.dataset.font; return changed(true); }
+      if (b.dataset.auto) { set(b.dataset.auto, ""); return changed(); }
+      if (b.dataset.role) { ui.role = b.dataset.role; return changed(true); }
+      if (b.id === "role-reset") { S.look.text[ui.role] = clone(DEF.look.text[ui.role]); return changed(true); }
       if (b.id === "skin-reset") { const s = SKINS[S.look.skin]; Object.assign(S.look, { a: s.a, b: s.b, t: s.t, p: s.p, po: s.po }); return changed(); }
       if (b.id === "soc-add") { W().items.push({ icon: "at", label: "", value: "" }); return changed(); }
       if (b.dataset.sx) { W().items.splice(+b.dataset.sx, 1); return changed(); }

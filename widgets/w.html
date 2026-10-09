@@ -6,7 +6,7 @@
   Stream Widgets by SHAHZON: the widget that runs inside OBS.
   Every setting comes from the link (#c=...). Make links with the builder: index.html in this folder.
   Updating this file updates every streamer's widget the next time OBS loads it.
-  Version 1. Old links must keep working, so only ADD new options with defaults (see DEF below).
+  Version 2 (adds text settings, 4 widgets, 3 skins). Old links must keep working, so only ADD new options with defaults (see DEF below).
 -->
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,13 +23,13 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
 .noicon .ico { display: none; }
 .body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 0 26px 0 22px; }
 .row { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; }
-.label { font-size: calc(34px * var(--fs)); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.label { font-size: calc(34px * var(--fs) * var(--s-lab, 1)); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .tag { display: inline-block; vertical-align: middle; font-size: .5em; line-height: 1; padding: .35em .6em .3em; margin-right: .45em; background: var(--a); color: var(--on-a);
   border-radius: calc(var(--r) * .35); transform: translateY(-.15em); }
-.count { font-size: calc(44px * var(--fs)); line-height: .9; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.count { font-size: calc(44px * var(--fs) * var(--s-num, 1)); line-height: .9; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .count .of { opacity: .55; font-size: .68em; }
-.money .count { font-size: calc(36px * var(--fs)); }
-.money .label { font-size: calc(30px * var(--fs)); }
+.money .count { font-size: calc(36px * var(--fs) * var(--s-num, 1)); }
+.money .label { font-size: calc(30px * var(--fs) * var(--s-lab, 1)); }
 .bar { position: relative; height: 16px; background: rgb(var(--t-rgb) / .13); border-radius: min(var(--r), 8px); overflow: hidden; }
 .bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, var(--b), var(--a)); border-radius: inherit;
   transition: width .9s cubic-bezier(.2,.8,.2,1); }
@@ -43,10 +43,10 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
 .stats { flex: 1; display: flex; align-items: center; }
 .stat { flex: 1; min-width: 0; padding: 0 22px; }
 .stat + .stat { border-left: 2px solid rgb(var(--t-rgb) / .14); }
-.num { display: block; font-size: calc(50px * var(--fs)); line-height: .95; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lab { display: block; font-size: calc(21px * var(--fs)); line-height: 1.1; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+.num { display: block; font-size: calc(50px * var(--fs) * var(--s-num, 1)); line-height: .95; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab { display: block; font-size: calc(21px * var(--fs) * var(--s-lab, 1)); line-height: 1.1; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
 .stat .mini { display: inline-block; width: .62em; height: .62em; margin-right: .18em; fill: var(--a); vertical-align: -.02em; }
-.amt { flex: none; align-self: center; margin-right: 26px; font-size: calc(40px * var(--fs)); color: var(--a); white-space: nowrap; }
+.amt { flex: none; align-self: center; margin-right: 26px; font-size: calc(40px * var(--fs) * var(--s-num, 1)); color: var(--a); white-space: nowrap; }
 .rot { transition: opacity .4s ease, transform .4s ease; }
 .rot.out { opacity: 0; transform: translateY(10px); }
 .card.pop { animation: pop .7s cubic-bezier(.3,1.6,.5,1); }
@@ -57,8 +57,8 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
 .bolt { position: absolute; width: 130px; height: 176px; left: 50%; top: -10px; margin-left: -65px; opacity: 0; pointer-events: none; }
 .bolt path { fill: #fff; filter: drop-shadow(0 0 12px var(--a)) drop-shadow(0 0 28px var(--b)); }
 .banner { position: absolute; left: 0; right: 0; top: 18px; text-align: center; opacity: 0; pointer-events: none; line-height: .9; }
-.banner .big { font-size: calc(84px * var(--fs)); color: var(--t); text-shadow: 4px 4px 0 var(--a), 8px 8px 0 rgb(0 0 0 / .85); white-space: nowrap; }
-.banner .small { display: inline-block; margin-top: 10px; font-size: calc(26px * var(--fs)); padding: 6px 16px 4px; background: var(--b); color: var(--on-b);
+.banner .big { font-size: calc(84px * var(--fs) * var(--s-ban, 1)); color: var(--t); text-shadow: 4px 4px 0 var(--a), 8px 8px 0 rgb(0 0 0 / .85); white-space: nowrap; }
+.banner .small { display: inline-block; margin-top: 10px; font-size: calc(26px * var(--fs) * var(--s-ban, 1)); padding: 6px 16px 4px; background: var(--b); color: var(--on-b);
   border-radius: min(var(--r), 10px); }
 .celebrate .banner { animation: banner 3.8s cubic-bezier(.2,1.4,.4,1) forwards; }
 .celebrate .card { animation: slam .6s cubic-bezier(.3,1.6,.5,1), shake .5s .1s; }
@@ -147,7 +147,70 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
 [data-skin=terminal] .count, [data-skin=terminal] .num { color: var(--a); text-shadow: 0 0 10px rgb(var(--a-rgb) / .6); }
 [data-skin=terminal] .banner .big { text-shadow: 3px 0 0 var(--b), -3px 0 0 var(--a); }
 
-@media (prefers-reduced-motion: reduce) { .bar i::after, .card.hot { animation: none; } }
+/* Gradient: filled colour card */
+[data-skin=gradient] { --r: 18px; }
+[data-skin=gradient] .card { background: linear-gradient(120deg, var(--a), var(--b)); color: var(--on-a); box-shadow: 0 12px 30px rgb(0 0 0 / .35); }
+[data-skin=gradient] .ico { background: rgb(0 0 0 / .18); }
+[data-skin=gradient] .ico svg, [data-skin=gradient] .stat .mini { fill: var(--on-a); }
+[data-skin=gradient] .bar { background: rgb(0 0 0 / .25); }
+[data-skin=gradient] .bar i { background: var(--on-a); }
+[data-skin=gradient] .tag { background: rgb(0 0 0 / .3); color: #fff; }
+[data-skin=gradient] .amt, [data-skin=gradient] .tkmove .sep { color: var(--on-a); }
+[data-skin=gradient] .stat + .stat { border-left-color: rgb(0 0 0 / .2); }
+
+/* Comic: bold sticker */
+[data-skin=comic] { --r: 14px; }
+[data-skin=comic] .card { border: 5px solid #000; box-shadow: 8px 8px 0 var(--a); rotate: -1deg; }
+[data-skin=comic] .ico { border-right: 5px solid #000; background: var(--b); }
+[data-skin=comic] .ico svg { fill: #000; }
+[data-skin=comic] .count, [data-skin=comic] .num, [data-skin=comic] .tkmove { text-shadow: 3px 3px 0 #000; }
+[data-skin=comic] .bar { height: 22px; border: 4px solid #000; background: #fff; }
+[data-skin=comic] .bar i { background: repeating-linear-gradient(-45deg, var(--a) 0 12px, var(--b) 12px 24px); border-radius: 0; }
+[data-skin=comic] .bar i::after { display: none; }
+[data-skin=comic] .tag { border: 2px solid #000; }
+[data-skin=comic] .banner .big { color: #fff; -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: 6px 6px 0 var(--b); }
+[data-skin=comic] .banner .small { border: 3px solid #000; }
+
+/* Minimal: just the text */
+[data-skin=minimal] { --r: 0px; }
+[data-skin=minimal] .card { background: transparent; overflow: visible; }
+[data-skin=minimal] .ico { background: transparent; }
+[data-skin=minimal] .ico svg { fill: var(--a); filter: drop-shadow(0 2px 4px rgb(0 0 0 / .8)); }
+[data-skin=minimal] .label, [data-skin=minimal] .count, [data-skin=minimal] .num, [data-skin=minimal] .lab, [data-skin=minimal] .amt, [data-skin=minimal] .tkmove { text-shadow: 0 2px 4px rgb(0 0 0 / .9), 0 0 2px #000; }
+[data-skin=minimal] .bar { background: rgb(0 0 0 / .45); }
+[data-skin=minimal] .stat + .stat { border-left-color: rgb(var(--a-rgb) / .5); }
+
+/* ---------- new widgets ---------- */
+.tklab { flex: none; align-self: center; margin-left: 22px; margin-right: 6px; font-size: calc(28px * var(--fs) * var(--s-lab, 1)); transform: none; }
+.tkwrap { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; align-self: center;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent); mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent); }
+.tkmove { display: inline-block; white-space: nowrap; font-size: calc(40px * var(--fs) * var(--s-num, 1)); line-height: 1.2; animation: tk 20s linear infinite; padding-left: 22px; }
+.tkmove .sep { color: var(--a); margin: 0 .7em; }
+@keyframes tk { to { transform: translateX(-50%); } }
+.lt-name { font-size: calc(62px * var(--fs) * var(--s-num, 1)); }
+.lt-sub { font-size: calc(26px * var(--fs) * var(--s-lab, 1)); opacity: .85; }
+
+/* ---------- entrance and idle motion ---------- */
+.card.in-slide { animation: inSlide .9s cubic-bezier(.2,.9,.2,1) both; }
+.card.in-drop { animation: inDrop .9s cubic-bezier(.3,1.5,.5,1) both; }
+.card.in-pop { animation: inPop .7s cubic-bezier(.3,1.6,.5,1) both; }
+.card.in-fade { animation: inFade 1s ease both; }
+.card.in-flip { animation: inFlip .9s cubic-bezier(.2,.9,.2,1) both; }
+@keyframes inSlide { from { opacity: 0; transform: translateX(-80px); } }
+@keyframes inDrop { from { opacity: 0; transform: translateY(-70px); } }
+@keyframes inPop { from { opacity: 0; transform: scale(.5); } }
+@keyframes inFade { from { opacity: 0; } }
+@keyframes inFlip { from { opacity: 0; transform: perspective(700px) rotateX(85deg); } }
+#root.idle-float { animation: idFloat 4s ease-in-out infinite; }
+#root.idle-pulse { animation: idPulse 2.6s ease-in-out infinite; transform-origin: 50% 50%; }
+#root.idle-sway { animation: idSway 5s ease-in-out infinite; transform-origin: 50% 50%; }
+#root.idle-glow { animation: idGlow 2.4s ease-in-out infinite; }
+@keyframes idFloat { 50% { transform: translateY(-8px); } }
+@keyframes idPulse { 50% { transform: scale(1.025); } }
+@keyframes idSway { 25% { transform: rotate(-1deg); } 75% { transform: rotate(1deg); } }
+@keyframes idGlow { 50% { filter: drop-shadow(0 0 14px rgb(var(--a-rgb) / .75)); } }
+
+@media (prefers-reduced-motion: reduce) { .bar i::after, .card.hot, .tkmove, #root { animation: none !important; } }
 </style>
 </head>
 <body>
@@ -167,7 +230,13 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
      New options get a default here, so links made before the option existed keep working. */
   const DEF = {
     v: 1, type: "likes", platform: "youtube", handle: "", ch: "", poll: 20, locale: "en-IN",
-    look: { skin: "neon", font: "orbitron", a: "#00e5ff", b: "#b14dff", t: "#ffffff", p: "#0a0718", po: .85, icon: true },
+    look: { skin: "neon", font: "orbitron", a: "#00e5ff", b: "#b14dff", t: "#ffffff", p: "#0a0718", po: .85, icon: true,
+            r: "", anim: "none", idle: "none",
+            // text: one block per kind of text. font "" = the main font; any Google font name works
+            text: { scale: 1, lab: { font: "", size: 1, w: "", i: "", ls: "", lh: "", tt: "", c: "" },
+                    num: { font: "", size: 1, w: "", i: "", ls: "", lh: "", tt: "", c: "" },
+                    ban: { font: "", size: 1, w: "", i: "", ls: "", lh: "", tt: "", c: "" },
+                    fill: "solid", stroke: 0, strokeC: "#000000", shadow: "skin", shadowC: "#000000" } },
     fx: { style: "sparks", banner: true, sound: "chime", vol: .6, url: "" },
     w: {
       likes:   { label: "LIKE GOAL", start: 100, step: 100, big: "{goal} LIKES!", small: "Goal smashed! Next: {next}", hot: true },
@@ -180,10 +249,18 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
         { icon: "camera", label: "INSTAGRAM", value: "@yourname" },
         { icon: "chat", label: "DISCORD", value: "discord.gg/yourname" },
         { icon: "coin", label: "TIP / UPI", value: "yourname@upi" } ] },
-      supporter: { secs: 6, sub: true, tip: true, top: true, subLabel: "Latest sub", tipLabel: "Latest tip", topLabel: "Top tip" }
+      supporter: { secs: 6, sub: true, tip: true, top: true, subLabel: "Latest sub", tipLabel: "Latest tip", topLabel: "Top tip" },
+      ticker:    { label: "NEWS", icon: "bolt", text: "Welcome to the stream!\nDrop a like if you're enjoying it\nFollow me on Instagram @yourname", speed: 120 },
+      clock:     { label: "Local time", h12: true, secs: false, date: false, tz: "" },
+      lower:     { name: "YOUR NAME", sub: "Playing BGMI tonight\nSquad up: drop your ID in chat", icon: "controller", secs: 6 },
+      subcount:  { label: "Subscribers", pop: true }
     }
   };
-  const SIZE = { likes: [800, 300], subs: [800, 300], tips: [800, 300], viewers: [560, 150], timer: [560, 150], socials: [760, 150], supporter: [800, 160] };
+  const SIZE = { likes: [800, 300], subs: [800, 300], tips: [800, 300], viewers: [560, 150], timer: [560, 150], socials: [760, 150], supporter: [800, 160],
+    ticker: [1400, 140], clock: [560, 150], lower: [820, 190], subcount: [560, 150] };
+  /* weights each Google font has ("a..b" = variable), so the font link always works */
+  const FONT_W = {"Saira Condensed":"400;500;600;700;800;900","Teko":"300..700","Russo One":"400","Anton":"400","Orbitron":"400..900","Bungee":"400","Bebas Neue":"400","Oswald":"200..700","Black Ops One":"400","Bangers":"400","Audiowide":"400","Staatliches":"400","Big Shoulders Display":"100..900","Barlow Condensed":"400;500;600;700;800;900","Michroma":"400","Squada One":"400","Rubik Mono One":"400","Archivo Black":"400","Bowlby One":"400","Kanit":"400;500;600;700;800;900","Saira":"100..900","Exo 2":"100..900","Chakra Petch":"300;400;500;600;700","Rajdhani":"300;400;500;600;700","Quantico":"400;700","Play":"400;700","Bai Jamjuree":"200;300;400;500;600;700","Titillium Web":"200;300;400;600;700;900","Pixelify Sans":"400..700","Press Start 2P":"400","Silkscreen":"400;700","VT323":"400","Monoton":"400","Share Tech Mono":"400","JetBrains Mono":"100..800","Fredoka":"300..700","Lilita One":"400","Luckiest Guy":"400","Righteous":"400","Permanent Marker":"400","Creepster":"400","Pacifico":"400","Lobster":"400","Caveat":"400..700","Dancing Script":"400..700","Rowdies":"300;400;700","Baloo 2":"400..800","Inter":"100..900","Montserrat":"100..900","Poppins":"100;200;300;400;500;600;700;800;900","Sora":"100..800","Nunito":"200..1000","Rubik":"300..900","Barlow":"100;200;300;400;500;600;700;800;900","Space Grotesk":"300..700","Archivo":"100..900","Cinzel":"400..900","Playfair Display":"400..900","Hind":"300;400;500;600;700","Mukta":"200;300;400;500;600;700;800","Rozha One":"400","Kalam":"300;400;700","Yatra One":"400"};
+  const famQ = n => "family=" + String(n).trim().replace(/ /g, "+") + (FONT_W[n] && FONT_W[n] !== "400" ? ":wght@" + FONT_W[n] : "");
   const FONTS = {
     orbitron: ["Orbitron", "Orbitron:wght@700;800", 800, .8], teko: ["Teko", "Teko:wght@500;600;700", 600, 1.18],
     rajdhani: ["Rajdhani", "Rajdhani:wght@600;700", 700, 1.02], archivo: ["Archivo", "Archivo:wdth,wght@100,700;100,800", 800, .86],
@@ -235,14 +312,50 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
   /* ================= look ================= */
   const hexRgb = h => { h = String(h || "#fff").replace("#", ""); if (h.length === 3) h = [...h].map(c => c + c).join(""); const n = parseInt(h, 16) || 0; return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
   const onColor = h => { const [r, g, b] = hexRgb(h).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b > .45 ? "#000000" : "#ffffff"; };
-  const F = FONTS[L.font] || FONTS.orbitron;
+  const cleanFam = n => String(n || "").replace(/[^\w .-]/g, "").trim().slice(0, 60);
+  // main font: one of the presets, or any Google font by name
+  const bestW = n => { const w = FONT_W[n]; if (!w) return 700; if (w.includes("..")) { const [lo, hi] = w.split("..").map(Number); return Math.max(lo, Math.min(hi, 700)); }
+    const l = w.split(";").map(Number); return l.includes(700) ? 700 : l.filter(x => x <= 800).pop() || l[0]; };
+  const F = FONTS[L.font] || (cleanFam(L.font) ? [cleanFam(L.font), famQ(cleanFam(L.font)), bestW(cleanFam(L.font)), .9] : FONTS.orbitron);
   const root = document.documentElement.style;
   [["a", L.a], ["b", L.b], ["t", L.t], ["p", L.p]].forEach(([k, v]) => { root.setProperty("--" + k, v); root.setProperty(`--${k}-rgb`, hexRgb(v).join(" ")); });
   root.setProperty("--on-a", onColor(L.a)); root.setProperty("--on-b", onColor(L.b));
   root.setProperty("--po", Math.max(0, Math.min(1, Number(L.po)))); root.setProperty("--font", `"${F[0]}"`); root.setProperty("--fw", F[2]); root.setProperty("--fs", F[3]);
   document.body.dataset.skin = L.skin;
   if (C.fx.style === "thunder") document.body.classList.add("thunder");
-  const fl = document.createElement("link"); fl.rel = "stylesheet"; fl.href = `https://fonts.googleapis.com/css2?family=${F[1]}&display=swap`; document.head.appendChild(fl);
+  if (L.r !== "" && L.r != null && isFinite(Number(L.r))) document.body.style.setProperty("--r", Number(L.r) + "px");
+  /* ---- text settings ---- */
+  const TX = L.text || {}, fams = new Set();
+  const css = [];
+  const ROLE = { lab: ".label, .lab, .tag, .tklab", num: ".count, .num, .amt, .tkmove", ban: ".banner .big, .banner .small" };
+  for (const [r, sel] of Object.entries(ROLE)) {
+    const o = TX[r] || {}, p = [], fam = cleanFam(o.font);
+    root.setProperty("--s-" + r, (Number(TX.scale) || 1) * (Number(o.size) || 1));
+    if (fam) { fams.add(fam); p.push(`font-family: "${fam}", var(--font), sans-serif`); }
+    if (o.w) p.push(`font-weight: ${Number(o.w) || 400}`);
+    if (o.i === "italic" || o.i === "normal") p.push(`font-style: ${o.i}`);
+    if (o.ls !== "" && o.ls != null && isFinite(Number(o.ls))) p.push(`letter-spacing: ${Number(o.ls)}em`);
+    if (o.lh !== "" && o.lh != null && isFinite(Number(o.lh))) p.push(`line-height: ${Number(o.lh)}`);
+    if (/^(uppercase|lowercase|capitalize|none)$/.test(o.tt || "")) p.push(`text-transform: ${o.tt}`);
+    if (/^#[0-9a-f]{6}$/i.test(o.c || "")) p.push(`color: ${o.c}`);
+    if (p.length) css.push(`${sel} { ${p.join("; ")}; }`);
+  }
+  const big = ".count, .num, .amt, .tkmove, .banner .big";
+  const sc = /^#[0-9a-f]{6}$/i.test(TX.shadowC || "") ? TX.shadowC : "#000000";
+  if (TX.fill === "gradient") {
+    // see-through letters would show a text-shadow through them, so gradient text uses drop-shadow filters instead
+    const FSH = { none: "none", hard: `drop-shadow(4px 4px 0 ${sc})`, soft: `drop-shadow(0 6px 10px ${sc})`, glow: `drop-shadow(0 0 8px ${sc}) drop-shadow(0 0 18px ${sc})`,
+      long: `drop-shadow(1px 1px 0 ${sc}) drop-shadow(2px 2px 0 ${sc}) drop-shadow(3px 3px 0 ${sc})` }[TX.shadow] || "drop-shadow(0 2px 3px rgb(0 0 0 / .55))";
+    css.push(`.count, .num, .amt, .tkmove { background: linear-gradient(180deg, var(--a), var(--b)); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none !important; filter: ${FSH}; }
+.count .of, .tkmove .sep { -webkit-text-fill-color: var(--t); }`);
+  }
+  if (Number(TX.stroke) > 0) css.push(`${big} { -webkit-text-stroke: ${Math.min(12, Number(TX.stroke))}px ${/^#[0-9a-f]{6}$/i.test(TX.strokeC || "") ? TX.strokeC : "#000000"}; paint-order: stroke fill; }`);
+  const TSH = { none: "none", hard: `4px 4px 0 ${sc}`, soft: `0 6px 16px ${sc}`, glow: `0 0 10px ${sc}, 0 0 26px ${sc}`,
+    long: `1px 1px 0 ${sc}, 2px 2px 0 ${sc}, 3px 3px 0 ${sc}, 4px 4px 0 ${sc}, 5px 5px 0 ${sc}` }[TX.shadow];
+  if (TSH) css.push(`${TX.fill === "gradient" ? "" : ".count, .num, .amt, .tkmove, "}.label, .lab, .banner .big { text-shadow: ${TSH}; }`);
+  if (css.length) { const st = document.createElement("style"); st.textContent = css.join("\n"); document.head.appendChild(st); }
+  const fl = document.createElement("link"); fl.rel = "stylesheet";
+  fl.href = `https://fonts.googleapis.com/css2?family=${F[1]}${[...fams].filter(f => f !== F[0]).map(f => "&" + famQ(f)).join("")}&display=swap`; document.head.appendChild(fl);
 
   const [SW, SH] = SIZE[TYPE];
   const stage = $("stage"), cv = $("fx"), ctx = cv.getContext("2d");
@@ -252,7 +365,7 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
 
   function card(x, y, w, h, icon, inner) {
     const el = document.createElement("div");
-    el.className = "card" + (L.icon ? "" : " noicon");
+    el.className = "card" + (L.icon ? "" : " noicon") + (/^(slide|drop|pop|fade|flip)$/.test(L.anim || "") ? " in-" + L.anim : "");
     Object.assign(el.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" });
     el.style.setProperty("--h", h + "px");
     el.innerHTML = `<div class="ico">${svg(icon)}</div>${inner}`;
@@ -626,8 +739,53 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
     streamlabs(got);
   }
 
+  /* ================= widget: scrolling ticker ================= */
+  function ticker() {
+    const items = String(W.text || "").split("\n").map(x => x.trim()).filter(Boolean);
+    card(20, 20, SW - 40, SH - 40, W.icon || "bolt", `${W.label ? `<span class="tag tklab">${esc(W.label)}</span>` : ""}<div class="tkwrap"><div class="tkmove" id="tk"></div></div>`);
+    const line = (items.length ? items : ["Add your messages in the builder"]).map(esc).join('<span class="sep">◆</span>') + '<span class="sep">◆</span>';
+    const tk = $("tk"); tk.innerHTML = line + line;
+    const go = () => { const w = tk.scrollWidth / 2; tk.style.animationDuration = Math.max(4, w / Math.max(20, Number(W.speed) || 120)) + "s"; };
+    go(); document.fonts && document.fonts.ready.then(go);
+  }
+
+  /* ================= widget: clock ================= */
+  function clock() {
+    card(20, 20, 520, 110, "clock", `<div class="body" style="gap:2px"><span class="lab" id="cl"></span><span class="num" id="ct">0:00</span></div>`);
+    const tz = String(W.tz || "").trim() || undefined;
+    const draw = () => {
+      const d = new Date(), o = { hour: "numeric", minute: "2-digit", hour12: !!W.h12 }; if (W.secs) o.second = "2-digit";
+      try { if (tz) o.timeZone = tz; $("ct").textContent = d.toLocaleTimeString(C.locale || "en-IN", o);
+        $("cl").textContent = W.date ? d.toLocaleDateString(C.locale || "en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: tz }) : W.label || ""; }
+      catch { delete o.timeZone; $("ct").textContent = d.toLocaleTimeString(C.locale || "en-IN", o); $("cl").textContent = W.label || ""; }
+    };
+    draw(); setInterval(draw, 1000);
+  }
+
+  /* ================= widget: name plate (lower third) ================= */
+  function lower() {
+    const subs = String(W.sub || "").split("\n").map(x => x.trim()).filter(Boolean);
+    card(20, 20, SW - 40, SH - 40, W.icon || "controller", `<div class="body rot" id="lb" style="gap:6px"><span class="num lt-name" id="ln"></span><span class="lab lt-sub" id="ls"></span></div>`);
+    $("ln").textContent = W.name || ""; let i = 0;
+    $("ls").textContent = subs[0] || ""; $("ls").hidden = !subs.length;
+    if (subs.length > 1) setInterval(() => { const s = $("ls"); s.classList.add("rot", "out"); setTimeout(() => { i++; s.textContent = subs[i % subs.length]; s.classList.remove("out"); }, 420); }, Math.max(2, Number(W.secs) || 6) * 1000);
+  }
+
+  /* ================= widget: subscriber counter ================= */
+  function subcount() {
+    const el = card(20, 20, 520, 110, "bell", `<div class="stats"><div class="stat"><span class="lab">${esc(W.label)}</span><span class="num" id="sc">0</span></div></div>`);
+    let last = null;
+    const show = n => { $("sc").textContent = nf(n);
+      if (last != null && n > last && W.pop) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); burst(260, 70); sound(); }
+      last = n; };
+    if (DEMO) { let n = 12430; show(n); setInterval(() => { if (Math.random() < .5) show(n += 1); }, 2500); return; }
+    if (TWITCH) return status("Subscriber counter works with YouTube only");
+    subsFeed(show);
+  }
+
+  if (/^(float|pulse|sway|glow)$/.test(L.idle || "")) $("root").classList.add("idle-" + L.idle);
   addEventListener("message", e => { if (e.data && e.data.spw === "sound") sound(); });
-  ({ likes: goal, subs: goal, tips: goal, viewers, timer, socials, supporter })[TYPE]();
+  ({ likes: goal, subs: goal, tips: goal, viewers, timer, socials, supporter, ticker, clock, lower, subcount })[TYPE]();
 })();
 </script>
 </body></html>

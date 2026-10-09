@@ -34,6 +34,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn.primary[disabled] { opacity: .6; cursor: progress; }
 .btn.small { padding: 6px 10px; font-size: 13px; }
 .btn.plain { background: transparent; }
+a.btn { text-decoration: none; color: var(--text); display: inline-flex; align-items: center; gap: 6px; }
+.btn.widgets-cta { border-color: var(--tally); color: #fff; background: var(--tally-dim); }
+.btn.widgets-cta:hover { background: var(--tally); border-color: var(--tally); }
 
 /* ---------- layout ---------- */
 .app { display: grid; grid-template-columns: minmax(0, 1fr) 460px; align-items: start; }
@@ -239,6 +242,7 @@ select optgroup { font-style: normal; color: var(--muted); }
     <p>Design your own OBS overlays and scenes, then download them ready to use. Built on the system <b>SHAHZON</b> uses on his own streams.</p>
   </div>
   <span class="status" id="status-top" role="status" aria-live="polite"></span>
+  <a class="btn widgets-cta" href="widgets/index.html" title="Like goal, sub goal, live viewers, timer, socials and more for OBS">Stream widgets <span aria-hidden="true">→</span></a>
   <button class="btn plain" id="reset-top" type="button" title="Clear everything and start from the example">Start over</button>
   <button class="btn primary" id="dl-top" type="button">Download my pack</button>
 </header>

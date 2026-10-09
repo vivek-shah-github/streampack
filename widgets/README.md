@@ -14,7 +14,7 @@ Everything you type stays in your browser. Nothing is uploaded anywhere.
 
 **Open the widget builder:** https://vivek-shah-github.github.io/streampack/widgets/
 
-Like goal, sub goal, tip goal, live viewers, timer, socials and supporters, in 7 styles you can recolour. Pick one, press **Copy link**, and in OBS add a **Browser** source with that link (Local file unticked). Each widget shows the exact width and height to use.
+Like goal, sub goal, tip goal, live viewers, subscriber counter, timer, clock, socials, scrolling ticker, name plate and supporters, in 10 styles you can recolour. The **Text** tab has 63 fonts (or any Google font by name), plus size, weight, italic, letter spacing, line height, case and colour for labels, main text and celebration text, and gradient, outline and shadow effects. The **Look** tab adds corner roundness, entrance animations and idle motion. Pick one, press **Copy link**, and in OBS add a **Browser** source with that link (Local file unticked). Each widget shows the exact width and height to use.
 
 Widgets run from this website, so when the design is updated, everyone's widgets update the next time OBS loads them. To change your own settings later, open the builder, go to **Add to OBS › Edit a widget you already made**, and paste your link.
 
