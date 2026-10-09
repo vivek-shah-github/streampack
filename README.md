@@ -10,6 +10,14 @@ Make your own OBS stream pack: overlays, Starting Soon, BRB, Just Chatting and S
 
 Everything you type stays in your browser. Nothing is uploaded anywhere.
 
+## Make it yours
+
+- **Text tab:** 63 fonts (gaming, pixel, handwritten, clean, Hindi-friendly) or upload your own TTF/OTF/WOFF. Pick a heading and body font, then fine-tune each kind of text (headlines, timer, name tag, labels, numbers, alerts, chat): size, weight, italic, letter spacing, line height, case and colour. Big text gets fill (gradient or solid), outline and shadow/glow.
+- **Move & resize (under the preview, or the Layout tab):** drag any text, box, logo or the alert wherever you want, in every scene, horizontal and vertical. Click something for exact X/Y, size, rotation, hide, and its own font and colour. Things snap to the centre and edges (hold Alt to place freely); arrow keys nudge.
+- **Facecam and game windows:** set each window to 16:9, 4:3, 1:1, 3:4, 9:16, 21:9, free or your own ratio, resize it by dragging its corners, and the see-through hole follows. The pack's `index.html` and `config.js` list the exact OBS numbers.
+
+For developers: draggable items in the scene files carry `data-el`, windows carry `data-frame`. Window sizes are saved in `frames` and moved items in `layout` in `config.js`.
+
 ## Optional extras (use your own free keys)
 
 The pack works without these. Each streamer gets their own keys, which are free and take about 5 minutes. The builder has the same steps under each box, plus a **Test my key** button.
