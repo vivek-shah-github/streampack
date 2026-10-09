@@ -239,6 +239,7 @@ select optgroup { font-style: normal; color: var(--muted); }
     <p>Design your own OBS overlays and scenes, then download them ready to use. Built on the system <b>SHAHZON</b> uses on his own streams.</p>
   </div>
   <span class="status" id="status-top" role="status" aria-live="polite"></span>
+  <button class="btn plain" id="reset-top" type="button" title="Clear everything and start from the example">Start over</button>
   <button class="btn primary" id="dl-top" type="button">Download my pack</button>
 </header>
 
@@ -1700,7 +1701,7 @@ function previewDoc(S, file, ed) {
       else if (b.id === "preset-save") return savePreset();
       else if (b.id === "dl-bottom") return download();
       else if (b.id === "test-yt") return testYT();
-      else if (b.id === "reset-all") { if (!confirm("Clear everything and start from the example?")) return; S = defaultState(); try { localStorage.removeItem(KEY); } catch {} renderForm(); changed(); return; }
+      else if (b.id === "reset-all") return startOver();
       else return;
       sync(); changed();
     });
@@ -2038,6 +2039,14 @@ function previewDoc(S, file, ed) {
     btns.forEach(b => b.disabled = false);
   }
   $("#dl-top").addEventListener("click", () => { download(); });
+  function startOver() {
+    if (!confirm("Clear everything (text, colours, layout, fonts) and start from the example? Save a settings file first if you want to keep this look.")) return;
+    S = defaultState(); try { localStorage.removeItem(KEY); } catch {}
+    registerCustom(); ui.sel = null; ui.tab = "basics";
+    renderForm(); renderEditPanel(); changed();
+    status("Started over from the example.", "ok");
+  }
+  $("#reset-top").addEventListener("click", startOver);
 
   renderForm(); renderKeys(); refresh(true);
 })();
