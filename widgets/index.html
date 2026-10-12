@@ -216,18 +216,31 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
       lower:     { name: "YOUR NAME", sub: "Playing BGMI tonight\nSquad up: drop your ID in chat", icon: "controller", secs: 6 },
       subcount:  { label: "Subscribers", pop: true },
       topsup:    { label: "TOP SUPPORTERS", icon: "star", rank: true, dots: true, secs: 5, items: [
-        { name: "Rahul", amount: "₹1,000" }, { name: "Simran", amount: "₹250" } ] }
+        { name: "Rahul", amount: "₹1,000" }, { name: "Simran", amount: "₹250" } ] },
+      rank:      { label: "RANK", value: "Conqueror", icon: "star" },
+      gameid:    { label: "BGMI UID", value: "5123456789", icon: "controller" },
+      live:      { text: "LIVE", sub: "", look: "dot", red: true },
+      topic:     { label: "TODAY'S TOPIC", icon: "chat", text: "Ranked grind to Conqueror\nViewer games after 10 PM", secs: 8 },
+      subbtn:    { text: "", done: "", secs: 12, sound: true },
+      next:      { label: "Next stream", value: "Tomorrow, 9 PM", cta: true, ctaLabel: "", ctaValue: "@yourchannel" },
+      alerts:    { sub: true, member: true, tip: true, raid: true, secs: 6, msg: true, banner: "THANK YOU!",
+                   subT: "", memberT: "", tipT: "NEW TIP", superchatT: "SUPER CHAT", bitsT: "CHEER", raidT: "RAID", raidWord: "viewers" },
+      counter:   { label: "WINS", icon: "star", start: 0, target: 0, pop: true }
     }
   };
   const TYPES = [
     ["likes", "Like goal", "YouTube"], ["subs", "Sub goal", "YouTube"], ["tips", "Tip goal", "Streamlabs"],
     ["viewers", "Viewers", "YouTube"], ["subcount", "Sub counter", "YouTube"], ["timer", "Timer", "No keys needed"], ["clock", "Clock", "No keys needed"],
     ["socials", "Socials", "No keys needed"], ["ticker", "Scrolling ticker", "No keys needed"], ["lower", "Name plate", "No keys needed"], ["supporter", "Supporters", "Streamlabs"],
-    ["topsup", "Top supporters", "No keys needed"]
+    ["topsup", "Top supporters", "No keys needed"], ["alerts", "Alerts", "Streamlabs"], ["rank", "Rank box", "No keys needed"],
+    ["gameid", "Game ID", "No keys needed"], ["live", "LIVE badge", "No keys needed"], ["topic", "Topic bar", "No keys needed"],
+    ["next", "Next stream", "No keys needed"], ["subbtn", "Subscribe button", "No keys needed"], ["counter", "Counter", "Click to count"]
   ];
   const SIZE = { likes: [800, 300], subs: [800, 300], tips: [800, 300], viewers: [560, 150], timer: [560, 150], socials: [760, 150], supporter: [800, 160],
-    ticker: [1400, 140], clock: [560, 150], lower: [820, 190], subcount: [560, 150], topsup: [800, 160] };
-  const NEEDS = { likes: ["yt"], subs: ["yt"], tips: ["sl"], viewers: ["yt"], timer: [], socials: [], supporter: ["sl"], ticker: [], clock: [], lower: [], subcount: ["yt"], topsup: [] };
+    ticker: [1400, 140], clock: [560, 150], lower: [820, 190], subcount: [560, 150], topsup: [800, 160],
+    rank: [560, 150], gameid: [560, 150], live: [420, 130], topic: [1200, 140], subbtn: [640, 210], next: [1200, 180], alerts: [900, 300], counter: [560, 150] };
+  const NEEDS = { likes: ["yt"], subs: ["yt"], tips: ["sl"], viewers: ["yt"], timer: [], socials: [], supporter: ["sl"], ticker: [], clock: [], lower: [], subcount: ["yt"], topsup: [],
+    rank: [], gameid: [], live: [], topic: [], subbtn: [], next: [], alerts: ["sl"], counter: [] };
   const YT_ONLY = ["likes", "subs", "viewers", "subcount"];
   /* every font you can pick, with the weights Google Fonts has ("a..b" = variable) */
   const FONT_LIB = [
@@ -261,7 +274,12 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
     terminal: { label: "Terminal", note: "Hacker console", font: "mono", a: "#00ffa3", b: "#00b3ff", t: "#e6fff6", p: "#020409", po: .88 },
     gradient: { label: "Gradient", note: "Bold colour-filled card", font: "anton", a: "#ff3fd8", b: "#6a5cff", t: "#ffffff", p: "#120a24", po: 1 },
     comic:    { label: "Comic", note: "Sticker with a thick outline", font: "bungee", a: "#ffd23f", b: "#ff4f8b", t: "#ffffff", p: "#1d1d1d", po: 1 },
-    minimal:  { label: "Minimal", note: "Just the text, no card", font: "rajdhani", a: "#ffd23f", b: "#ff7f50", t: "#ffffff", p: "#000000", po: 0 }
+    minimal:  { label: "Minimal", note: "Just the text, no card", font: "rajdhani", a: "#ffd23f", b: "#ff7f50", t: "#ffffff", p: "#000000", po: 0 },
+    carbon:   { label: "Carbon", note: "Esports carbon fibre", font: "archivo", a: "#00d1ff", b: "#0066ff", t: "#ffffff", p: "#121417", po: .95 },
+    holo:     { label: "Holo", note: "Shiny rainbow foil edge", font: "nunito", a: "#ff7ad9", b: "#7a8cff", t: "#ffffff", p: "#120f24", po: .85 },
+    synth:    { label: "Synthwave", note: "Retro sunset and grid", font: "Audiowide", a: "#ff3fa4", b: "#7b2cff", t: "#fff1fb", p: "#14061f", po: .9 },
+    royal:    { label: "Royal", note: "Gold on black, premium", font: "Cinzel", a: "#e8c45a", b: "#a8761f", t: "#fdf6e3", p: "#0d0b08", po: .92 },
+    hazard:   { label: "Hazard", note: "Caution-tape stripe, tactical", font: "Black Ops One", a: "#ffcc00", b: "#ff6a00", t: "#ffffff", p: "#111111", po: .92 }
   };
   const FONTS = { orbitron: ["Orbitron", 800], teko: ["Teko", 600], rajdhani: ["Rajdhani", 700], archivo: ["Archivo", 800], fredoka: ["Fredoka", 600],
     bungee: ["Bungee", 400], pixelify: ["Pixelify Sans", 700], anton: ["Anton", 400], mono: ["Share Tech Mono", 400], nunito: ["Nunito", 900] };
@@ -299,7 +317,7 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
   const b64 = str => { const u = new TextEncoder().encode(str); let s = ""; u.forEach(c => s += String.fromCharCode(c)); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
   function cfgFor(type) {
     const w = { [type]: S.w[type] };
-    if (type === "supporter") w.tips = { cur: S.w.tips.cur };
+    if (type === "supporter" || type === "alerts") w.tips = { cur: S.w.tips.cur };
     return { v: 1, type, platform: S.platform, handle: S.handle, ch: S.ch, poll: S.poll, locale: S.locale, look: S.look, fx: S.fx, w };
   }
   const widgetURL = () => new URL("w.html", location.href).href;
@@ -427,6 +445,68 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
         ${R(p + "secs", "Seconds per supporter", 2, 15, 1, "s")}
         <p class="small-note">Changed the list during a stream? Copy the new link from <b>Add to OBS</b> and paste it over the old one in the source's Properties.</p>
       </section>`;
+    const tw = S.platform === "twitch";
+    if (t === "rank" || t === "gameid") return `
+      <section class="grp"><h2>${t === "rank" ? "Rank box" : "Game ID"}</h2>
+        <p class="hint">${t === "rank" ? "Shows your rank or level, like the rank box in the Stream Pack." : "Shows your in-game ID so viewers can add you, like the ID line in the Stream Pack."}</p>
+        <div class="row">${T(p + "label", "Label", t === "rank" ? "RANK" : "BGMI UID")}${T(p + "value", t === "rank" ? "Your rank" : "Your ID", t === "rank" ? "Conqueror" : "5123456789")}</div>
+        <label class="field"><span>Icon</span>${icons}</label>
+        <p class="small-note">${t === "rank" ? "Rank changed" : "ID changed"}? Copy the new link from <b>Add to OBS</b> and paste it over the old one in the source's Properties.</p>
+      </section>`;
+    if (t === "live") return `
+      <section class="grp"><h2>LIVE badge</h2>
+        <p class="hint">A blinking LIVE tag, like the one on the facecam in the Stream Pack. Put it on your camera or in a corner.</p>
+        <div class="row">${T(p + "text", "Text", "LIVE")}${T(p + "sub", "Small line under it (optional)", "Playing BGMI")}</div>
+        <div class="field"><span>Look</span></div>
+        ${opts(p + "look", [["dot", "Dot", "on your card"], ["filled", "Filled", "solid colour"]], "three")}
+        ${C(p + "red", "Classic red (untick to use your main colour)")}
+      </section>`;
+    if (t === "topic") return `
+      <section class="grp"><h2>Topic bar</h2>
+        <p class="hint">Tells viewers what today's stream is about, like the topic bar in the Stream Pack. Several lines take turns.</p>
+        <div class="row">${T(p + "label", "Tag at the start (empty hides it)", "TODAY'S TOPIC")}<label class="field"><span>Icon</span>${icons}</label></div>
+        <label class="field"><span>Topic (one per line)</span><textarea data-k="${p}text" rows="3"></textarea></label>
+        ${R(p + "secs", "Seconds per line", 3, 20, 1, "s")}
+      </section>`;
+    if (t === "next") return `
+      <section class="grp"><h2>Next stream</h2>
+        <p class="hint">When you're live next, plus a ${tw ? "follow" : "subscribe"} box, like the boxes on the Stream Pack's Ending scene. Great on BRB and Ending scenes.</p>
+        <div class="row">${T(p + "label", "Label", "Next stream")}${T(p + "value", "When", "Tomorrow, 9 PM")}</div>
+        ${C(p + "cta", "Show the " + (tw ? "follow" : "subscribe") + " box")}
+        ${W().cta ? `<div class="row">${T(p + "ctaLabel", "Label", tw ? "Follow" : "Subscribe")}${T(p + "ctaValue", "Your handle", "@yourchannel")}</div>` : ""}
+      </section>`;
+    if (t === "subbtn") return `
+      <section class="grp"><h2>Subscribe button</h2>
+        <p class="hint">A ${tw ? "follow" : "subscribe"} button that a mouse pointer clicks every few seconds, with a bell ring and a sparkle. A friendly reminder for viewers.</p>
+        <div class="row">${T(p + "text", "Button text", tw ? "FOLLOW" : "SUBSCRIBE")}${T(p + "done", "After the click", tw ? "FOLLOWING" : "SUBSCRIBED")}</div>
+        ${R(p + "secs", "Play every", 6, 60, 1, "s")}
+        ${C(p + "sound", "Play the sound on each click")}
+      </section>`;
+    if (t === "alerts") return `
+      <section class="grp"><h2>Alerts</h2>
+        <p class="hint">Pops up for every new ${tw ? "follower, sub, tip, bits and raid" : "subscriber, member, tip and Super Chat"}, with your celebration effect and sound. Hidden the rest of the time.</p>
+        <h3 class="sub">Show these</h3>
+        ${C(p + "sub", tw ? "New followers" : "New subscribers")}
+        ${C(p + "member", tw ? "New subs" : "New members")}
+        ${C(p + "tip", "Tips" + (tw ? " and bits" : " and Super Chats"))}
+        ${tw ? C(p + "raid", "Raids") : ""}
+        ${C(p + "msg", "Show the viewer's message")}
+        ${R(p + "secs", "Seconds on screen", 3, 15, 1, "s")}
+        <h3 class="sub">Text</h3>
+        ${T(p + "banner", "Big text above the alert (empty hides it)", "THANK YOU!")}
+        <div class="row">${T(p + "subT", tw ? "Follower title" : "Subscriber title", tw ? "NEW FOLLOWER" : "NEW SUBSCRIBER")}${T(p + "memberT", tw ? "Sub title" : "Member title", tw ? "NEW SUB" : "NEW MEMBER")}</div>
+        <div class="row">${T(p + "tipT", "Tip title", "NEW TIP")}${tw ? T(p + "bitsT", "Bits title", "CHEER") : T(p + "superchatT", "Super Chat title", "SUPER CHAT")}</div>
+        ${tw ? `<div class="row">${T(p + "raidT", "Raid title", "RAID")}${T(p + "raidWord", "Word after the raid size", "viewers")}</div>` : ""}
+        <p class="small-note">Leave the ${tw ? "follower and sub" : "subscriber and member"} titles empty to use the standard words. The big text also needs <b>Show the big text</b> ticked in the Celebration tab.</p>
+      </section>`;
+    if (t === "counter") return `
+      <section class="grp"><h2>Counter</h2>
+        <p class="hint">Count wins, kills, deaths or anything else, live on stream. You click it to count.</p>
+        <div class="row">${T(p + "label", "Label", "WINS")}<label class="field"><span>Icon</span>${icons}</label></div>
+        <div class="row">${N(p + "start", "Start from", 'min="0"')}${N(p + "target", "Goal (0 = no goal)", 'min="0"')}</div>
+        ${C(p + "pop", "Pop, sparkle and play the sound on +1")}
+        <p class="small-note"><b>How to count in OBS:</b> right-click the source › <b>Interact</b>. In that window, click it (or press + or ↑) to add 1, right-click it (or press − or ↓) to take 1 away. The count is saved, and every copy of this counter in your scenes shows the same number. Using two counters? Give them different labels. To start again, change "Start from" and paste the new link.</p>
+      </section>`;
     if (t === "subcount") return `
       <section class="grp"><h2>Subscriber counter</h2>
         <p class="hint">Your channel's subscriber count, checked once a minute. YouTube rounds big numbers (12.4K), so this shows what YouTube shows.</p>
@@ -503,11 +583,16 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
   }
 
   function lookPanel() {
-    const sw = k => { const s = SKINS[k], f = FONTS[s.font];
+    const sw = k => { const s = SKINS[k], f = FONTS[s.font] || [s.font, 700];
       const r = k === "cozy" ? "99px" : k === "glass" ? "14px" : k === "neon" || k === "comic" || k === "gradient" ? "8px" : k === "clean" ? "6px" : "0";
       const border = k === "neon" ? `border:2px solid ${s.a};box-shadow:0 0 10px ${s.a}88` : k === "pixel" ? "border:3px solid #000;box-shadow:3px 3px 0 #000" : k === "terminal" ? `border:1px solid ${s.a}` : k === "cozy" ? `border:2px solid ${s.a}99` : k === "glass" ? "border:1px solid rgba(255,255,255,.3)" : "";
       const bg = k === "gradient" ? `linear-gradient(120deg,${s.a},${s.b})` : k === "minimal" ? "transparent" : s.p;
-      const extra = k === "comic" ? `border:3px solid #000;box-shadow:3px 3px 0 ${s.a};` : k === "minimal" ? "text-shadow:0 2px 3px #000;" : "";
+      const extra = k === "comic" ? `border:3px solid #000;box-shadow:3px 3px 0 ${s.a};` : k === "minimal" ? "text-shadow:0 2px 3px #000;"
+        : k === "carbon" ? `border-left:4px solid ${s.a};background:repeating-linear-gradient(45deg,rgba(255,255,255,.06) 0 3px,transparent 3px 6px),${s.p};`
+        : k === "holo" ? `border:2px solid transparent;background:linear-gradient(${s.p},${s.p}) padding-box,linear-gradient(90deg,${s.a},#7afcff,#fff59a,${s.b}) border-box;`
+        : k === "synth" ? `background:linear-gradient(180deg,${s.p} 45%,${s.b});border-top:3px solid ${s.a};font-style:italic;`
+        : k === "royal" ? `border:1px solid ${s.a};box-shadow:inset 0 0 0 3px ${s.p},inset 0 0 0 4px ${s.a}88;`
+        : k === "hazard" ? `border-top:6px solid transparent;border-image:repeating-linear-gradient(-45deg,${s.a} 0 6px,#111 6px 12px) 6;` : "";
       const clip = k === "blade" ? "clip-path:polygon(0 0,100% 0,100% 65%,calc(100% - 10px) 100%,0 100%)" : "";
       return `<span class="sw" style="background:${bg};color:${s.t};border-radius:${r};${border};${extra}${clip};font-family:'${f[0]}';font-weight:${f[1]};${k === "blade" ? "font-style:italic;" : ""}">
         <i style="background:linear-gradient(160deg,${s.a},${s.b});border-radius:${k === "cozy" || k === "glass" ? "50%" : "3px"}"></i>92
@@ -540,10 +625,10 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
   }
 
   function celebPanel() {
-    const has = ["likes", "subs", "tips", "supporter"].includes(S.type);
+    const has = ["likes", "subs", "tips", "supporter", "alerts", "counter", "subbtn"].includes(S.type);
     return `
       <section class="grp"><h2>Celebration</h2>
-        <p class="hint">${has ? (S.type === "supporter" ? "Plays when a new supporter pops up." : "Plays when a goal is reached.") + " Press Play celebration under the preview to see it." : "This widget doesn't celebrate. These settings are shared, so they'll apply to your goal and supporter widgets."}</p>
+        <p class="hint">${has ? (S.type === "supporter" || S.type === "alerts" ? "Plays when a new supporter pops up." : S.type === "counter" ? "Plays when you add 1." : S.type === "subbtn" ? "Plays on each click." : "Plays when a goal is reached.") + " Press Play celebration under the preview to see it." : "This widget doesn't celebrate. These settings are shared, so they'll apply to your goal and supporter widgets."}</p>
         <div class="field"><span>Effect</span></div>
         ${opts("fx.style", [["sparks", "Sparks"], ["confetti", "Confetti"], ["thunder", "Thunder", "flash + bolt"], ["hearts", "Hearts"], ["stars", "Stars"], ["none", "None"]], "three")}
         ${C("fx.banner", "Show the big text on goals")}
@@ -614,7 +699,8 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
           <li>In OBS: <b>Sources</b> › <b>+</b> › <b>Browser</b>. Give it a name like <code>${escH(name)}</code>.</li>
           <li>Leave <b>Local file</b> unticked and paste the link into <b>URL</b>.</li>
           <li>Set <b>Width</b> <code>${w}</code> and <b>Height</b> <code>${h}</code>, then press OK. Drag the corners to resize; it stays sharp.</li>
-          ${["likes", "subs", "tips", "supporter"].includes(S.type) && S.fx.sound !== "none" ? `<li>Tick <b>Control audio via OBS</b> so the sound reaches your stream.</li>` : ""}
+          ${["likes", "subs", "tips", "supporter", "alerts", "counter", "subbtn"].includes(S.type) && S.fx.sound !== "none" ? `<li>Tick <b>Control audio via OBS</b> so the sound reaches your stream.</li>` : ""}
+          ${S.type === "counter" ? `<li>To count: right-click the source › <b>Interact</b>, then click it (+1) or right-click it (−1).</li>` : ""}
           ${S.type === "timer" || needs(S.type).includes("yt") ? `<li>Set <b>Page permissions</b> to <b>Read access to OBS status information</b>, so it knows when you go live.</li>` : ""}
         </ol>
         <p class="small-note">Change anything later: come back, edit, copy the new link, and paste it over the old one in the source's Properties.</p>
@@ -720,7 +806,10 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
     const src = "w.html" + hashFor(S.type, real) + (real ? "" : "&demo=1");
     if ($("#pv").getAttribute("src") !== src) $("#pv").setAttribute("src", src);
     $("#acts").innerHTML = ["likes", "subs", "tips"].includes(S.type) ? `<button type="button" class="btn small" data-act="celebrate">Play celebration</button>`
-      : S.type === "supporter" ? `<button type="button" class="btn small" data-act="sub">Test new ${S.platform === "twitch" ? "follower" : "sub"}</button> <button type="button" class="btn small" data-act="tip">Test new tip</button>` : "";
+      : S.type === "supporter" ? `<button type="button" class="btn small" data-act="sub">Test new ${S.platform === "twitch" ? "follower" : "sub"}</button> <button type="button" class="btn small" data-act="tip">Test new tip</button>`
+      : S.type === "alerts" ? `<button type="button" class="btn small" data-act="sub">Test ${S.platform === "twitch" ? "follower" : "subscriber"}</button> <button type="button" class="btn small" data-act="member">Test ${S.platform === "twitch" ? "sub" : "member"}</button> <button type="button" class="btn small" data-act="tip">Test tip</button>${S.platform === "twitch" ? ` <button type="button" class="btn small" data-act="raid">Test raid</button>` : ""}`
+      : S.type === "counter" ? `<button type="button" class="btn small" data-act="plus">+1</button> <button type="button" class="btn small" data-act="minus">−1</button>`
+      : S.type === "subbtn" ? `<button type="button" class="btn small" data-act="play">Play now</button>` : "";
     $$("#bg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === ui.bg));
     $("#live-wrap").hidden = !(K.k || K.t);
     const n = YT_ONLY.includes(S.type) && S.platform === "twitch" ? "This widget needs YouTube. For Twitch, try Tip goal, Supporters, Timer or Socials." : "";
@@ -735,7 +824,7 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
   const post = m => { try { $("#pv").contentWindow.postMessage(m, "*"); } catch {} };
 
   /* ---------------- events ---------------- */
-  const REDRAW = /^(w\.\w+\.(mode|likes|sub|tip|top|step|start)|fx\.sound|platform)$/;
+  const REDRAW = /^(w\.\w+\.(mode|likes|sub|tip|top|step|start|cta)|fx\.sound|platform)$/;
   function bind() {
     const F = $("#form");
     F.addEventListener("input", e => {
@@ -751,7 +840,7 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
         set(k, v);
         if (el.type === "range") { const o = $(`[data-out="${k}"]`); if (o) o.textContent = fmtOut(v, o.dataset.fmt); }
         if (el.type === "checkbox" && REDRAW.test(k)) return changed(true);
-        if (/\.(start|step)$/.test(k)) { const n = el.closest(".grp") && $(".small-note", el.closest(".grp")); if (n) { const st = Number(get(k.replace(/\.\w+$/, ".start"))), sp = Number(get(k.replace(/\.\w+$/, ".step")) || 0); n.textContent = `Goals go ${st}, ${st + sp}, ${st + 2 * sp}… Set "Then add" to 0 for one goal only.`; } }
+        if (/^w\.(likes|subs)\.(start|step)$/.test(k)) { const n = el.closest(".grp") && $(".small-note", el.closest(".grp")); if (n) { const st = Number(get(k.replace(/\.\w+$/, ".start"))), sp = Number(get(k.replace(/\.\w+$/, ".step")) || 0); n.textContent = `Goals go ${st}, ${st + sp}, ${st + 2 * sp}… Set "Then add" to 0 for one goal only.`; } }
       }
       else if (el.dataset.color) { S.look[el.dataset.color] = el.value; const h = $(`[data-hex="${el.dataset.color}"]`); if (h) h.value = el.value; }
       else if (el.dataset.hex) { let v = el.value.trim(); if (!v.startsWith("#")) v = "#" + v; if (!/^#[0-9a-f]{6}$/i.test(v)) return; S.look[el.dataset.hex] = v.toLowerCase(); $(`[data-color="${el.dataset.hex}"]`).value = v; }
@@ -832,7 +921,11 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
     const a = b.dataset.act, names = ["Rohit_OP", "Simran", "GhostAkm", "Pixel Jatt", "Noob Master", "Aarav"], nm = names[Math.floor(Math.random() * names.length)];
     if (a === "celebrate") post({ spw: "celebrate" });
     else if (a === "sub") post({ spw: "event", e: { kind: "sub", name: nm, id: "t" + Date.now() } });
-    else { const amt = [99, 199, 500, 1000, 2000][Math.floor(Math.random() * 5)]; post({ spw: "event", e: { kind: "tip", name: nm, amount: amt, display: (S.w.tips.cur || "") + amt.toLocaleString(S.locale), id: "t" + Date.now() } }); }
+    else if (a === "member") post({ spw: "event", e: { kind: "member", name: nm, id: "t" + Date.now() } });
+    else if (a === "raid") post({ spw: "event", e: { kind: "raid", name: nm, viewers: 5 + Math.floor(Math.random() * 80), id: "t" + Date.now() } });
+    else if (a === "plus" || a === "minus") post({ spw: "count", d: a === "plus" ? 1 : -1 });
+    else if (a === "play") post({ spw: "play" });
+    else { const amt = [99, 199, 500, 1000, 2000][Math.floor(Math.random() * 5)]; post({ spw: "event", e: { kind: "tip", name: nm, amount: amt, display: (S.w.tips.cur || "") + amt.toLocaleString(S.locale), msg: "Great stream, keep it up!", id: "t" + Date.now() } }); }
   });
   $("#go-obs").addEventListener("click", () => { showTab("obs"); $("#form").scrollIntoView({ block: "start" }); });
 
@@ -876,6 +969,7 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
 
   /* ---------------- start ---------------- */
   if (location.hash.includes("c=") && readLink(location.href)) history.replaceState(null, "", location.pathname);
+  loadFonts(Object.values(SKINS).map(s => FONTS[s.font] ? FONTS[s.font][0] : s.font));
   renderPicker(); renderForm(); bind(); preview();
 })();
 </script>

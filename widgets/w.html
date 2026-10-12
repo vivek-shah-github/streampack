@@ -6,7 +6,7 @@
   Stream Widgets by SHAHZON: the widget that runs inside OBS.
   Every setting comes from the link (#c=...). Make links with the builder: index.html in this folder.
   Updating this file updates every streamer's widget the next time OBS loads it.
-  Version 2 (adds text settings, 4 widgets, 3 skins). Old links must keep working, so only ADD new options with defaults (see DEF below).
+  Version 3 (adds top supporters, rank, game ID, LIVE badge, topic, next stream, subscribe button, alerts, counter, and 5 skins). Old links must keep working, so only ADD new options with defaults (see DEF below).
 -->
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -197,6 +197,97 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
 .ts-dots i.on { background: var(--a); transform: scale(1.25); }
 [data-skin=gradient] .ts-dots i.on { background: var(--on-a); }
 
+/* ---------- more new widgets ---------- */
+.num .of { opacity: .55; font-size: .6em; }
+.nx-cta { color: var(--a); }
+.nx .num { font-size: calc(38px * var(--fs) * var(--s-num, 1)); }
+[data-skin=gradient] .nx-cta { color: var(--on-a); }
+/* LIVE badge */
+.lv-dot { flex: none; align-self: center; width: 24px; height: 24px; margin-left: 28px; border-radius: 50%; background: var(--lv); animation: lvp 1.4s ease-out infinite; }
+@keyframes lvp { 0% { box-shadow: 0 0 0 0 rgb(var(--lv-rgb) / .75); } 80%, 100% { box-shadow: 0 0 0 18px rgb(var(--lv-rgb) / 0); } }
+.lv-t { letter-spacing: .06em; }
+.card.lv-fill { background: var(--lv); color: #fff; }
+.card.lv-fill .lv-dot { background: #fff; --lv-rgb: 255 255 255; }
+/* subscribe button */
+.sb { transition: transform .15s ease, filter .3s ease; }
+.sb.press { transform: scale(.93); }
+.sb.done { filter: grayscale(.9) brightness(.85); }
+.sb.done .ico svg { animation: ring .9s ease; transform-origin: 50% 12%; }
+@keyframes ring { 0%, 100% { rotate: 0deg; } 20% { rotate: 20deg; } 40% { rotate: -16deg; } 60% { rotate: 10deg; } 80% { rotate: -5deg; } }
+.sb-t { text-align: center; letter-spacing: .04em; }
+.sb-cur { position: absolute; left: 0; top: 0; width: 46px; height: 46px; opacity: 0; z-index: 5; pointer-events: none;
+  transition: transform .9s cubic-bezier(.3,.7,.3,1), opacity .3s ease; }
+.sb-cur.on { opacity: 1; }
+.sb-cur svg { width: 100%; height: 100%; fill: #fff; stroke: #000; stroke-width: 1.3; filter: drop-shadow(0 3px 4px rgb(0 0 0 / .6)); transition: transform .12s; transform-origin: 20% 10%; }
+.sb-cur.click svg { transform: scale(.82); }
+/* alerts */
+.card.al { opacity: 0; }
+.card.al.al-in { opacity: 1; animation: alIn .7s cubic-bezier(.3,1.5,.5,1) both; }
+.card.al.al-out { opacity: 0; animation: alOut .6s ease both; }
+@keyframes alIn { from { opacity: 0; transform: translateY(40px) scale(.85); } to { opacity: 1; transform: none; } }
+@keyframes alOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-20px); } }
+.al-msg { opacity: .85; margin-top: 2px; }
+
+/* =================== MORE SKINS =================== */
+/* Carbon: esports carbon fibre */
+[data-skin=carbon] { --r: 6px; }
+[data-skin=carbon] .card { background: repeating-linear-gradient(45deg, rgb(255 255 255 / .045) 0 3px, transparent 3px 6px),
+  repeating-linear-gradient(-45deg, rgb(0 0 0 / .3) 0 3px, transparent 3px 6px), rgb(var(--p-rgb) / var(--po));
+  border-left: 6px solid var(--a); box-shadow: 0 10px 26px rgb(0 0 0 / .45), inset 0 1px 0 rgb(255 255 255 / .12); }
+[data-skin=carbon] .ico { background: linear-gradient(180deg, rgb(255 255 255 / .18), transparent 55%), linear-gradient(160deg, var(--a), var(--b)); border-right: 2px solid rgb(0 0 0 / .45); }
+[data-skin=carbon] .bar { height: 12px; border-radius: 2px; }
+[data-skin=carbon] .bar i { border-radius: 2px; }
+[data-skin=carbon] .tag { border-radius: 2px; }
+
+/* Holo: shiny rainbow foil edge */
+[data-skin=holo] { --r: 20px; }
+[data-skin=holo] .card { box-shadow: 0 12px 30px rgb(0 0 0 / .35); }
+[data-skin=holo] .card::before { content: ""; position: absolute; inset: 0; padding: 3px; border-radius: inherit; z-index: 2; pointer-events: none;
+  background: linear-gradient(90deg, var(--a), #7afcff, #fff59a, var(--b), #ff9ad5, var(--a)) 0 0 / 300% 100%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: holo 6s linear infinite; }
+[data-skin=holo] .card::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / .14) 48%, transparent 60%) 0 0 / 260% 100%; animation: holo 4.5s linear infinite; }
+@keyframes holo { from { background-position: 0% 0; } to { background-position: 300% 0; } }
+[data-skin=holo] .ico { background: linear-gradient(135deg, var(--a), #7afcff 45%, var(--b)); background-size: 200% 200%; }
+[data-skin=holo] .bar i { background: linear-gradient(90deg, var(--a), #7afcff, #fff59a, var(--b)); }
+
+/* Synthwave: retro sunset and grid */
+[data-skin=synth] { --r: 4px; }
+[data-skin=synth] .card { background: linear-gradient(180deg, rgb(var(--p-rgb) / var(--po)) 45%, rgb(var(--b-rgb) / calc(var(--po) * .55)));
+  border-top: 3px solid var(--a); box-shadow: 0 0 0 1px rgb(var(--b-rgb) / .55), 0 8px 30px rgb(var(--a-rgb) / .3); }
+[data-skin=synth] .card::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 45%; pointer-events: none;
+  background: repeating-linear-gradient(90deg, rgb(var(--a-rgb) / .22) 0 1px, transparent 1px 34px), repeating-linear-gradient(0deg, rgb(var(--a-rgb) / .22) 0 1px, transparent 1px 12px);
+  -webkit-mask-image: linear-gradient(transparent, #000); mask-image: linear-gradient(transparent, #000); }
+[data-skin=synth] .ico { background: repeating-linear-gradient(180deg, transparent 0 58%, rgb(var(--p-rgb) / .9) 58% 62%, transparent 62% 70%, rgb(var(--p-rgb) / .9) 70% 73%, transparent 73% 80%, rgb(var(--p-rgb) / .9) 80% 82%),
+  linear-gradient(180deg, #ffd23f, var(--a) 55%, var(--b)); }
+[data-skin=synth] .count, [data-skin=synth] .num, [data-skin=synth] .banner .big { font-style: italic; text-shadow: 3px 3px 0 var(--b), 6px 6px 0 rgb(0 0 0 / .45); }
+[data-skin=synth] .bar { transform: skewX(-14deg); border-radius: 0; }
+[data-skin=synth] .bar i { border-radius: 0; }
+
+/* Royal: gold on black */
+[data-skin=royal] { --r: 10px; }
+[data-skin=royal] .card { border: 1px solid rgb(var(--a-rgb) / .75);
+  box-shadow: inset 0 0 0 5px rgb(var(--p-rgb) / var(--po)), inset 0 0 0 6px rgb(var(--a-rgb) / .45), 0 12px 30px rgb(0 0 0 / .5); }
+[data-skin=royal] .ico { background: radial-gradient(circle at 30% 25%, #fff6c9, var(--a) 45%, var(--b)); border-right: 1px solid rgb(var(--a-rgb) / .6); }
+[data-skin=royal] .count, [data-skin=royal] .num, [data-skin=royal] .amt { letter-spacing: .02em; }
+[data-skin=royal] .lab, [data-skin=royal] .label { color: var(--a); }
+[data-skin=royal] .bar { height: 10px; border: 1px solid rgb(var(--a-rgb) / .5); background: rgb(0 0 0 / .4); }
+[data-skin=royal] .bar i { background: linear-gradient(90deg, var(--b), #fff3b0, var(--a)); }
+[data-skin=royal] .banner .big { text-shadow: 0 2px 0 var(--b), 0 0 24px rgb(var(--a-rgb) / .6); }
+
+/* Hazard: caution-tape stripe, tactical */
+[data-skin=hazard] { --r: 0px; }
+[data-skin=hazard] .card { border: 2px solid rgb(var(--a-rgb) / .6); box-shadow: 0 10px 26px rgb(0 0 0 / .5); }
+[data-skin=hazard] .card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 9px; z-index: 2; pointer-events: none;
+  background: repeating-linear-gradient(-45deg, var(--a) 0 12px, #111 12px 24px); }
+[data-skin=hazard] .ico { background: repeating-linear-gradient(-45deg, var(--a) 0 16px, #111 16px 32px); }
+[data-skin=hazard] .ico svg { fill: #fff; filter: drop-shadow(0 0 3px #000) drop-shadow(0 0 1px #000); }
+[data-skin=hazard] .bar { height: 18px; border-radius: 0; border: 2px solid var(--a); background: transparent; }
+[data-skin=hazard] .bar i { border-radius: 0; background: repeating-linear-gradient(-45deg, var(--a) 0 10px, var(--b) 10px 20px); }
+[data-skin=hazard] .bar i::after { display: none; }
+[data-skin=hazard] .tag { border-radius: 0; }
+[data-skin=hazard] .banner .big { text-shadow: 4px 4px 0 #111, 6px 6px 0 var(--a); }
+
 /* ---------- entrance and idle motion ---------- */
 .card.in-slide { animation: inSlide .9s cubic-bezier(.2,.9,.2,1) both; }
 .card.in-drop { animation: inDrop .9s cubic-bezier(.3,1.5,.5,1) both; }
@@ -262,11 +353,21 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
       lower:     { name: "YOUR NAME", sub: "Playing BGMI tonight\nSquad up: drop your ID in chat", icon: "controller", secs: 6 },
       subcount:  { label: "Subscribers", pop: true },
       topsup:    { label: "TOP SUPPORTERS", icon: "star", rank: true, dots: true, secs: 5, items: [
-        { name: "Rahul", amount: "₹1,000" }, { name: "Simran", amount: "₹250" } ] }
+        { name: "Rahul", amount: "₹1,000" }, { name: "Simran", amount: "₹250" } ] },
+      rank:      { label: "RANK", value: "Conqueror", icon: "star" },
+      gameid:    { label: "BGMI UID", value: "5123456789", icon: "controller" },
+      live:      { text: "LIVE", sub: "", look: "dot", red: true },
+      topic:     { label: "TODAY'S TOPIC", icon: "chat", text: "Ranked grind to Conqueror\nViewer games after 10 PM", secs: 8 },
+      subbtn:    { text: "", done: "", secs: 12, sound: true },
+      next:      { label: "Next stream", value: "Tomorrow, 9 PM", cta: true, ctaLabel: "", ctaValue: "@yourchannel" },
+      alerts:    { sub: true, member: true, tip: true, raid: true, secs: 6, msg: true, banner: "THANK YOU!",
+                   subT: "", memberT: "", tipT: "NEW TIP", superchatT: "SUPER CHAT", bitsT: "CHEER", raidT: "RAID", raidWord: "viewers" },
+      counter:   { label: "WINS", icon: "star", start: 0, target: 0, pop: true }
     }
   };
   const SIZE = { likes: [800, 300], subs: [800, 300], tips: [800, 300], viewers: [560, 150], timer: [560, 150], socials: [760, 150], supporter: [800, 160],
-    ticker: [1400, 140], clock: [560, 150], lower: [820, 190], subcount: [560, 150], topsup: [800, 160] };
+    ticker: [1400, 140], clock: [560, 150], lower: [820, 190], subcount: [560, 150], topsup: [800, 160],
+    rank: [560, 150], gameid: [560, 150], live: [420, 130], topic: [1200, 140], subbtn: [640, 210], next: [1200, 180], alerts: [900, 300], counter: [560, 150] };
   /* weights each Google font has ("a..b" = variable), so the font link always works */
   const FONT_W = {"Saira Condensed":"400;500;600;700;800;900","Teko":"300..700","Russo One":"400","Anton":"400","Orbitron":"400..900","Bungee":"400","Bebas Neue":"400","Oswald":"200..700","Black Ops One":"400","Bangers":"400","Audiowide":"400","Staatliches":"400","Big Shoulders Display":"100..900","Barlow Condensed":"400;500;600;700;800;900","Michroma":"400","Squada One":"400","Rubik Mono One":"400","Archivo Black":"400","Bowlby One":"400","Kanit":"400;500;600;700;800;900","Saira":"100..900","Exo 2":"100..900","Chakra Petch":"300;400;500;600;700","Rajdhani":"300;400;500;600;700","Quantico":"400;700","Play":"400;700","Bai Jamjuree":"200;300;400;500;600;700","Titillium Web":"200;300;400;600;700;900","Pixelify Sans":"400..700","Press Start 2P":"400","Silkscreen":"400;700","VT323":"400","Monoton":"400","Share Tech Mono":"400","JetBrains Mono":"100..800","Fredoka":"300..700","Lilita One":"400","Luckiest Guy":"400","Righteous":"400","Permanent Marker":"400","Creepster":"400","Pacifico":"400","Lobster":"400","Caveat":"400..700","Dancing Script":"400..700","Rowdies":"300;400;700","Baloo 2":"400..800","Inter":"100..900","Montserrat":"100..900","Poppins":"100;200;300;400;500;600;700;800;900","Sora":"100..800","Nunito":"200..1000","Rubik":"300..900","Barlow":"100;200;300;400;500;600;700;800;900","Space Grotesk":"300..700","Archivo":"100..900","Cinzel":"400..900","Playfair Display":"400..900","Hind":"300;400;500;600;700","Mukta":"200;300;400;500;600;700;800","Rozha One":"400","Kalam":"300;400;700","Yatra One":"400"};
   const famQ = n => "family=" + String(n).trim().replace(/ /g, "+") + (FONT_W[n] && FONT_W[n] !== "400" ? ":wght@" + FONT_W[n] : "");
@@ -325,7 +426,7 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
   // main font: one of the presets, or any Google font by name
   const bestW = n => { const w = FONT_W[n]; if (!w) return 700; if (w.includes("..")) { const [lo, hi] = w.split("..").map(Number); return Math.max(lo, Math.min(hi, 700)); }
     const l = w.split(";").map(Number); return l.includes(700) ? 700 : l.filter(x => x <= 800).pop() || l[0]; };
-  const F = FONTS[L.font] || (cleanFam(L.font) ? [cleanFam(L.font), famQ(cleanFam(L.font)), bestW(cleanFam(L.font)), .9] : FONTS.orbitron);
+  const F = FONTS[L.font] || (cleanFam(L.font) ? [cleanFam(L.font), famQ(cleanFam(L.font)).replace(/^family=/, ""), bestW(cleanFam(L.font)), .9] : FONTS.orbitron);
   const root = document.documentElement.style;
   [["a", L.a], ["b", L.b], ["t", L.t], ["p", L.p]].forEach(([k, v]) => { root.setProperty("--" + k, v); root.setProperty(`--${k}-rgb`, hexRgb(v).join(" ")); });
   root.setProperty("--on-a", onColor(L.a)); root.setProperty("--on-b", onColor(L.b));
@@ -554,9 +655,10 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
           let e = null;
           if (ev.type === "follow") e = { kind: "sub", name };
           else if (ev.type === "subscription" || ev.type === "resub") e = { kind: "member", name };
-          else if (ev.type === "donation") e = { kind: "tip", name, amount: Number(m.amount) || num(m.formatted_amount), display: m.formatted_amount || "" };
-          else if (ev.type === "superchat") e = { kind: "superchat", name, amount: num(m.displayString), display: m.displayString || "" };
-          else if (ev.type === "bits") e = { kind: "bits", name, amount: Number(m.amount) || 0, display: (m.amount || "") + " bits" };
+          else if (ev.type === "donation") e = { kind: "tip", name, amount: Number(m.amount) || num(m.formatted_amount), display: m.formatted_amount || "", msg: m.message || "" };
+          else if (ev.type === "superchat") e = { kind: "superchat", name, amount: num(m.displayString), display: m.displayString || "", msg: m.comment || m.message || "" };
+          else if (ev.type === "bits") e = { kind: "bits", name, amount: Number(m.amount) || 0, display: (m.amount || "") + " bits", msg: m.message || "" };
+          else if (ev.type === "raid") e = { kind: "raid", name, viewers: Number(m.raiders) || Number(m.viewers) || 0 };
           if (e) { e.id = id || e.kind + ":" + name + ":" + Math.floor(Date.now() / 30e3); on(e); }
         });
       });
@@ -811,9 +913,112 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
       setTimeout(() => { i++; show(); ["tb", "ta"].forEach(id => $(id).classList.remove("out")); }, 420); }, Math.max(2, Number(W.secs) || 5) * 1000);
   }
 
+  /* ================= widget: rank box and game ID (a label and a value) ================= */
+  function info() {
+    card(20, 20, 520, 110, W.icon || "star", `<div class="body" style="gap:2px"><span class="lab">${esc(W.label)}</span><span class="num">${esc(W.value)}</span></div>`);
+  }
+
+  /* ================= widget: LIVE badge ================= */
+  function live() {
+    const el = card(20, 20, SW - 40, SH - 40, "play", `<span class="lv-dot"></span><div class="body" style="gap:0;padding-left:20px"><span class="num lv-t">${esc(W.text || "LIVE")}</span>${W.sub ? `<span class="lab">${esc(W.sub)}</span>` : ""}</div>`);
+    el.classList.add("noicon"); if (W.look === "filled") el.classList.add("lv-fill");
+    const c = W.red ? "#ff2b2b" : L.a; root.setProperty("--lv", c); root.setProperty("--lv-rgb", hexRgb(c).join(" "));
+  }
+
+  /* ================= widget: topic bar ================= */
+  function topic() {
+    const lines = String(W.text || "").split("\n").map(x => x.trim()).filter(Boolean);
+    card(20, 20, SW - 40, SH - 40, W.icon || "chat", `${W.label ? `<span class="tag tklab">${esc(W.label)}</span>` : ""}<div class="body rot" id="tpb"><span class="num" id="tp"></span></div>`);
+    let i = 0; $("tp").textContent = lines[0] || "Add your topic in the builder";
+    if (lines.length > 1) setInterval(() => { const b = $("tpb"); b.classList.add("out"); setTimeout(() => { i++; $("tp").textContent = lines[i % lines.length]; b.classList.remove("out"); }, 420); }, Math.max(3, Number(W.secs) || 8) * 1000);
+  }
+
+  /* ================= widget: next stream (+ subscribe box) ================= */
+  function next() {
+    const cta = !!W.cta;
+    document.body.classList.add("nx");
+    card(20, 20, cta ? 620 : SW - 40, 140, "clock", `<div class="body" style="gap:4px"><span class="lab">${esc(W.label)}</span><span class="num">${esc(W.value)}</span></div>`);
+    if (cta) card(660, 20, SW - 680, 140, TWITCH ? "heart" : "bell", `<div class="body" style="gap:4px"><span class="lab">${esc(W.ctaLabel || (TWITCH ? "Follow" : "Subscribe"))}</span><span class="num nx-cta">${esc(W.ctaValue)}</span></div>`);
+  }
+
+  /* ================= widget: subscribe button that clicks itself ================= */
+  function subbtn() {
+    const T0 = W.text || (TWITCH ? "FOLLOW" : "SUBSCRIBE"), T1 = W.done || (TWITCH ? "FOLLOWING" : "SUBSCRIBED");
+    const el = card(70, 50, 500, 110, TWITCH ? "heart" : "bell", `<div class="body" style="align-items:center;padding:0 26px"><span class="num sb-t" id="sbt"></span></div>`);
+    el.classList.add("sb"); $("sbt").textContent = T0;
+    const cur = document.createElement("div"); cur.className = "sb-cur";
+    cur.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2l14 10.2-6.2 1.2 3.6 7.3-2.8 1.4-3.6-7.4L4 19.4z"/></svg>`; $("root").appendChild(cur);
+    const at = (x, y, anim) => { if (!anim) cur.style.transition = "none"; cur.style.transform = `translate(${x}px, ${y}px)`; if (!anim) { void cur.offsetWidth; cur.style.transition = ""; } };
+    let busy = false;
+    function play() {
+      if (busy) return; busy = true;
+      at(SW + 10, SH + 10, false); cur.classList.add("on"); requestAnimationFrame(() => at(380, 112, true));
+      setTimeout(() => { cur.classList.add("click"); el.classList.add("press"); }, 950);
+      setTimeout(() => { el.classList.remove("press"); el.classList.add("done"); $("sbt").textContent = T1; burst(320, 105); if (W.sound) sound(); }, 1150);
+      setTimeout(() => { cur.classList.remove("click"); at(SW + 60, 20, true); }, 2000);
+      setTimeout(() => { el.classList.remove("done"); $("sbt").textContent = T0; cur.classList.remove("on"); busy = false; }, 4300);
+    }
+    addEventListener("message", e => { if (e.data && e.data.spw === "play") play(); });
+    setTimeout(play, 1200); setInterval(play, Math.max(6, Number(W.secs) || 12) * 1000);
+  }
+
+  /* ================= widget: alerts (pops up for each new supporter) ================= */
+  function alerts() {
+    const el = card(50, 130, SW - 100, 150, "star", `<div class="body" style="gap:4px"><span class="lab" id="at"></span><span class="num" id="an"></span><span class="lab al-msg" id="am" hidden></span></div><span class="amt" id="aa"></span>`);
+    el.className = "card al" + (L.icon ? "" : " noicon");
+    const ICO = { sub: TWITCH ? "heart" : "bell", member: "star", tip: "coin", superchat: "chat", bits: "bolt", raid: "eye" };
+    const title = k => ({ sub: W.subT || (TWITCH ? "NEW FOLLOWER" : "NEW SUBSCRIBER"), member: W.memberT || (TWITCH ? "NEW SUB" : "NEW MEMBER"),
+      tip: W.tipT, superchat: W.superchatT, bits: W.bitsT, raid: W.raidT })[k] || "";
+    const allow = k => k === "sub" ? W.sub : k === "member" ? W.member : /^(tip|superchat|bits)$/.test(k) ? W.tip : k === "raid" ? W.raid : false;
+    const q = [], seen = new Set(); let busy = false;
+    function show() {
+      const e = q.shift(); if (!e) { busy = false; return; } busy = true;
+      $("at").textContent = title(e.kind); $("an").textContent = e.name || "Someone";
+      $("aa").textContent = e.kind === "raid" ? (e.viewers ? nf(e.viewers) + " " + (W.raidWord || "") : "").trim()
+        : e.kind === "sub" || e.kind === "member" ? "" : e.display || (e.amount ? (C.w.tips.cur || "") + nf(e.amount) : "");
+      const m = W.msg && e.msg ? String(e.msg).slice(0, 140) : ""; $("am").textContent = m; $("am").hidden = !m;
+      el.querySelector(".ico").innerHTML = svg(ICO[e.kind] || "star");
+      el.classList.remove("al-out"); void el.offsetWidth; el.classList.add("al-in");
+      if (C.fx.banner && W.banner) celebrate(W.banner, "", SW / 2, 205); else { burst(SW / 2, 205); sound(); }
+      setTimeout(() => { el.classList.remove("al-in"); el.classList.add("al-out"); setTimeout(show, 700); }, Math.max(3, Number(W.secs) || 6) * 1000);
+    }
+    function got(e) { if (!e || !allow(e.kind)) return; const id = e.id || e.kind + ":" + e.name + ":" + Date.now(); if (seen.has(id)) return; seen.add(id); q.push(e); if (!busy) show(); }
+    addEventListener("message", e => { if (e.data && e.data.spw === "event") got(e.data.e); });
+    if (DEMO) {
+      const cur = C.w.tips.cur || "₹", ex = [{ kind: "sub", name: "Rohit_OP" }, { kind: "tip", name: "Simran", amount: 199, display: cur + "199", msg: "Love the stream!" },
+        { kind: "member", name: "GhostAkm" }, { kind: "raid", name: "PixelJatt", viewers: 42 }];
+      let n = 0; const demo = () => { got({ ...ex[n % ex.length], id: "demo" + n }); n++; }; setTimeout(demo, 600); setInterval(demo, 9000); return;
+    }
+    if (!TOKEN) status("Add your Streamlabs token in the builder");
+    streamlabs(got);
+  }
+
+  /* ================= widget: counter (wins, kills, deaths…) you click in OBS ================= */
+  function counter() {
+    const tgt = Math.max(0, Number(W.target) || 0);
+    const el = card(20, 20, 520, 110, W.icon || "star", `<div class="stats"><div class="stat"><span class="lab">${esc(W.label)}</span><span class="num"><span id="cn">0</span>${tgt ? ` <span class="of">/ ${nf(tgt)}</span>` : ""}</span></div></div>`);
+    const key = "cnt:" + String(W.label || "count").trim().toLowerCase(), base = Number(W.start) || 0;
+    let st = DEMO ? null : store.get(key, null); if (!st || st.base !== base) st = { base, n: base };
+    if (!DEMO) store.set(key, st);
+    const show = () => { $("cn").textContent = nf(st.n); };
+    function add(d) {
+      if (!DEMO) st = store.get(key, st);
+      st.n = Math.max(0, st.n + d); if (!DEMO) store.set(key, st); show();
+      if (d > 0 && W.pop) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); burst(260, 70); sound(); }
+      if (d > 0 && tgt && st.n === tgt) { el.classList.add("hot"); setTimeout(() => el.classList.remove("hot"), 4000); burst(260, 70); }
+    }
+    show();
+    addEventListener("click", () => add(1));
+    addEventListener("contextmenu", e => { e.preventDefault(); add(-1); });
+    addEventListener("keydown", e => { if (["+", "=", "ArrowUp"].includes(e.key)) add(1); else if (["-", "_", "ArrowDown"].includes(e.key)) add(-1); });
+    addEventListener("message", e => { if (e.data && e.data.spw === "count") add(Number(e.data.d) || 0); });
+    if (!DEMO) setInterval(() => { const s = store.get(key, null); if (s && s.base === base && s.n !== st.n) { st = s; show(); } }, 1000);
+  }
+
   if (/^(float|pulse|sway|glow)$/.test(L.idle || "")) $("root").classList.add("idle-" + L.idle);
   addEventListener("message", e => { if (e.data && e.data.spw === "sound") sound(); });
-  ({ likes: goal, subs: goal, tips: goal, viewers, timer, socials, supporter, ticker, clock, lower, subcount, topsup })[TYPE]();
+  ({ likes: goal, subs: goal, tips: goal, viewers, timer, socials, supporter, ticker, clock, lower, subcount, topsup,
+     rank: info, gameid: info, live, topic, next, subbtn, alerts, counter })[TYPE]();
 })();
 </script>
 </body></html>
