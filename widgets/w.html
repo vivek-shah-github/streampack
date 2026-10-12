@@ -189,6 +189,13 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
 @keyframes tk { to { transform: translateX(-50%); } }
 .lt-name { font-size: calc(62px * var(--fs) * var(--s-num, 1)); }
 .lt-sub { font-size: calc(26px * var(--fs) * var(--s-lab, 1)); opacity: .85; }
+/* top supporters (your own list, like the Stream Pack) */
+.ts-pos { color: var(--a); margin-right: .32em; }
+[data-skin=gradient] .ts-pos { color: var(--on-a); opacity: .8; }
+.ts-dots { display: flex; gap: 6px; margin-top: 6px; }
+.ts-dots i { width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--t-rgb) / .25); transition: background .3s, transform .3s; }
+.ts-dots i.on { background: var(--a); transform: scale(1.25); }
+[data-skin=gradient] .ts-dots i.on { background: var(--on-a); }
 
 /* ---------- entrance and idle motion ---------- */
 .card.in-slide { animation: inSlide .9s cubic-bezier(.2,.9,.2,1) both; }
@@ -253,11 +260,13 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
       ticker:    { label: "NEWS", icon: "bolt", text: "Welcome to the stream!\nDrop a like if you're enjoying it\nFollow me on Instagram @yourname", speed: 120 },
       clock:     { label: "Local time", h12: true, secs: false, date: false, tz: "" },
       lower:     { name: "YOUR NAME", sub: "Playing BGMI tonight\nSquad up: drop your ID in chat", icon: "controller", secs: 6 },
-      subcount:  { label: "Subscribers", pop: true }
+      subcount:  { label: "Subscribers", pop: true },
+      topsup:    { label: "TOP SUPPORTERS", icon: "star", rank: true, dots: true, secs: 5, items: [
+        { name: "Rahul", amount: "₹1,000" }, { name: "Simran", amount: "₹250" } ] }
     }
   };
   const SIZE = { likes: [800, 300], subs: [800, 300], tips: [800, 300], viewers: [560, 150], timer: [560, 150], socials: [760, 150], supporter: [800, 160],
-    ticker: [1400, 140], clock: [560, 150], lower: [820, 190], subcount: [560, 150] };
+    ticker: [1400, 140], clock: [560, 150], lower: [820, 190], subcount: [560, 150], topsup: [800, 160] };
   /* weights each Google font has ("a..b" = variable), so the font link always works */
   const FONT_W = {"Saira Condensed":"400;500;600;700;800;900","Teko":"300..700","Russo One":"400","Anton":"400","Orbitron":"400..900","Bungee":"400","Bebas Neue":"400","Oswald":"200..700","Black Ops One":"400","Bangers":"400","Audiowide":"400","Staatliches":"400","Big Shoulders Display":"100..900","Barlow Condensed":"400;500;600;700;800;900","Michroma":"400","Squada One":"400","Rubik Mono One":"400","Archivo Black":"400","Bowlby One":"400","Kanit":"400;500;600;700;800;900","Saira":"100..900","Exo 2":"100..900","Chakra Petch":"300;400;500;600;700","Rajdhani":"300;400;500;600;700","Quantico":"400;700","Play":"400;700","Bai Jamjuree":"200;300;400;500;600;700","Titillium Web":"200;300;400;600;700;900","Pixelify Sans":"400..700","Press Start 2P":"400","Silkscreen":"400;700","VT323":"400","Monoton":"400","Share Tech Mono":"400","JetBrains Mono":"100..800","Fredoka":"300..700","Lilita One":"400","Luckiest Guy":"400","Righteous":"400","Permanent Marker":"400","Creepster":"400","Pacifico":"400","Lobster":"400","Caveat":"400..700","Dancing Script":"400..700","Rowdies":"300;400;700","Baloo 2":"400..800","Inter":"100..900","Montserrat":"100..900","Poppins":"100;200;300;400;500;600;700;800;900","Sora":"100..800","Nunito":"200..1000","Rubik":"300..900","Barlow":"100;200;300;400;500;600;700;800;900","Space Grotesk":"300..700","Archivo":"100..900","Cinzel":"400..900","Playfair Display":"400..900","Hind":"300;400;500;600;700","Mukta":"200;300;400;500;600;700;800","Rozha One":"400","Kalam":"300;400;700","Yatra One":"400"};
   const famQ = n => "family=" + String(n).trim().replace(/ /g, "+") + (FONT_W[n] && FONT_W[n] !== "400" ? ":wght@" + FONT_W[n] : "");
@@ -783,9 +792,28 @@ body { color: var(--t); font-family: var(--font), "Segoe UI", system-ui, sans-se
     subsFeed(show);
   }
 
+  /* ================= widget: top supporters (your own list, highest first) ================= */
+  function topsup() {
+    const items = (W.items || []).filter(x => x && String(x.name || "").trim()).slice(0, 10);
+    const el = card(20, 20, 760, 120, W.icon || "star", `<div class="body rot" id="tb" style="gap:2px"><span class="lab" id="tl"></span><span class="num" id="tn"></span>
+      ${W.dots && items.length > 1 ? `<span class="ts-dots" id="td">${items.map(() => "<i></i>").join("")}</span>` : ""}</div><span class="amt rot" id="ta"></span>`);
+    $("tl").textContent = W.label || "";
+    if (!items.length) { $("tn").textContent = "Add your supporters in the builder"; return; }
+    let i = 0;
+    const show = () => {
+      const k = i % items.length, x = items[k];
+      $("tn").innerHTML = (W.rank ? `<span class="ts-pos">#${k + 1}</span>` : "") + esc(x.name);
+      $("ta").textContent = String(x.amount || "").trim();
+      const d = $("td"); if (d) [...d.children].forEach((c, j) => c.classList.toggle("on", j === k));
+    };
+    show();
+    if (items.length > 1) setInterval(() => { ["tb", "ta"].forEach(id => $(id).classList.add("out"));
+      setTimeout(() => { i++; show(); ["tb", "ta"].forEach(id => $(id).classList.remove("out")); }, 420); }, Math.max(2, Number(W.secs) || 5) * 1000);
+  }
+
   if (/^(float|pulse|sway|glow)$/.test(L.idle || "")) $("root").classList.add("idle-" + L.idle);
   addEventListener("message", e => { if (e.data && e.data.spw === "sound") sound(); });
-  ({ likes: goal, subs: goal, tips: goal, viewers, timer, socials, supporter, ticker, clock, lower, subcount })[TYPE]();
+  ({ likes: goal, subs: goal, tips: goal, viewers, timer, socials, supporter, ticker, clock, lower, subcount, topsup })[TYPE]();
 })();
 </script>
 </body></html>

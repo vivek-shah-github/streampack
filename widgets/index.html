@@ -119,6 +119,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--focus); outline:
 
 .list { display: grid; gap: 8px; margin-bottom: 10px; }
 .li { display: grid; grid-template-columns: 96px 1fr 1.3fr 34px; gap: 6px; align-items: center; }
+.li.ts { grid-template-columns: 34px 1.5fr 1fr 34px; }
+.li.ts .n { font-weight: 700; color: var(--muted); text-align: center; }
 .icon-btn { appearance: none; border: 1px solid var(--line2); background: transparent; border-radius: 6px; width: 34px; height: 38px; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; }
 .icon-btn:hover { color: var(--text); border-color: var(--muted); }
 
@@ -212,17 +214,20 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
       ticker:    { label: "NEWS", icon: "bolt", text: "Welcome to the stream!\nDrop a like if you're enjoying it\nFollow me on Instagram @yourname", speed: 120 },
       clock:     { label: "Local time", h12: true, secs: false, date: false, tz: "" },
       lower:     { name: "YOUR NAME", sub: "Playing BGMI tonight\nSquad up: drop your ID in chat", icon: "controller", secs: 6 },
-      subcount:  { label: "Subscribers", pop: true }
+      subcount:  { label: "Subscribers", pop: true },
+      topsup:    { label: "TOP SUPPORTERS", icon: "star", rank: true, dots: true, secs: 5, items: [
+        { name: "Rahul", amount: "₹1,000" }, { name: "Simran", amount: "₹250" } ] }
     }
   };
   const TYPES = [
     ["likes", "Like goal", "YouTube"], ["subs", "Sub goal", "YouTube"], ["tips", "Tip goal", "Streamlabs"],
     ["viewers", "Viewers", "YouTube"], ["subcount", "Sub counter", "YouTube"], ["timer", "Timer", "No keys needed"], ["clock", "Clock", "No keys needed"],
-    ["socials", "Socials", "No keys needed"], ["ticker", "Scrolling ticker", "No keys needed"], ["lower", "Name plate", "No keys needed"], ["supporter", "Supporters", "Streamlabs"]
+    ["socials", "Socials", "No keys needed"], ["ticker", "Scrolling ticker", "No keys needed"], ["lower", "Name plate", "No keys needed"], ["supporter", "Supporters", "Streamlabs"],
+    ["topsup", "Top supporters", "No keys needed"]
   ];
   const SIZE = { likes: [800, 300], subs: [800, 300], tips: [800, 300], viewers: [560, 150], timer: [560, 150], socials: [760, 150], supporter: [800, 160],
-    ticker: [1400, 140], clock: [560, 150], lower: [820, 190], subcount: [560, 150] };
-  const NEEDS = { likes: ["yt"], subs: ["yt"], tips: ["sl"], viewers: ["yt"], timer: [], socials: [], supporter: ["sl"], ticker: [], clock: [], lower: [], subcount: ["yt"] };
+    ticker: [1400, 140], clock: [560, 150], lower: [820, 190], subcount: [560, 150], topsup: [800, 160] };
+  const NEEDS = { likes: ["yt"], subs: ["yt"], tips: ["sl"], viewers: ["yt"], timer: [], socials: [], supporter: ["sl"], ticker: [], clock: [], lower: [], subcount: ["yt"], topsup: [] };
   const YT_ONLY = ["likes", "subs", "viewers", "subcount"];
   /* every font you can pick, with the weights Google Fonts has ("a..b" = variable) */
   const FONT_LIB = [
@@ -404,6 +409,24 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
         <p class="small-note">Top tip resets when OBS starts a new stream.</p>
       </section>`;
     const icons = `<select data-k="${p}icon">${ICON_NAMES.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>`;
+    if (t === "topsup") return `
+      <section class="grp"><h2>Top supporters</h2>
+        <p class="hint">Your own list, like in the Stream Pack. Shows one supporter at a time, top of the list first. Empty names are skipped.</p>
+        ${T(p + "label", "Title", "TOP SUPPORTERS")}
+        <div class="list" id="ts"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+          <button type="button" class="btn small" id="ts-add">Add a supporter</button>
+          <button type="button" class="btn small" id="ts-sort">Sort highest first</button>
+          <label class="btn small" for="ts-in" tabindex="0">Load from my Stream Pack</label>
+        </div>
+        <input type="file" id="ts-in" accept="application/json,.json" hidden>
+        <p class="small-note">Stream Pack: in the pack builder open <b>Save &amp; keys</b>, press <b>Save settings file</b>, then load that file here. Its top supporters list is copied in.</p>
+        <label class="field"><span>Icon</span>${icons}</label>
+        ${C(p + "rank", "Show the rank (#1, #2…)")}
+        ${C(p + "dots", "Show dots for how many supporters there are")}
+        ${R(p + "secs", "Seconds per supporter", 2, 15, 1, "s")}
+        <p class="small-note">Changed the list during a stream? Copy the new link from <b>Add to OBS</b> and paste it over the old one in the source's Properties.</p>
+      </section>`;
     if (t === "subcount") return `
       <section class="grp"><h2>Subscriber counter</h2>
         <p class="hint">Your channel's subscriber count, checked once a minute. YouTube rounds big numbers (12.4K), so this shows what YouTube shows.</p>
@@ -659,6 +682,7 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
     if (ky && document.activeElement !== ky) ky.value = K.k; if (ks && document.activeElement !== ks) ks.value = K.t; if (kr) kr.checked = K.remember;
     document.body.classList.toggle("tw", S.platform === "twitch"); document.body.classList.toggle("yt", S.platform !== "twitch");
     if (S.type === "socials") renderSocials();
+    if (S.type === "topsup") renderTopsup();
     const link = $("#link"); if (link) link.value = widgetURL() + hashFor(S.type, true);
   }
   function renderSocials() {
@@ -669,6 +693,17 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
       <input type="text" data-sv="${i}" value="${escH(it.value)}" placeholder="@yourname" aria-label="Value ${i + 1}">
       <button type="button" class="icon-btn" data-sx="${i}" title="Remove" aria-label="Remove line ${i + 1}">×</button></div>`).join("");
   }
+  function renderTopsup(force) {
+    const el = $("#ts"); if (!el) return;
+    if (!force && el.contains(document.activeElement) && document.activeElement.tagName === "INPUT") return;   // keep the cursor while typing
+    el.innerHTML = W().items.map((it, i) => `<div class="li ts"><span class="n">#${i + 1}</span>
+      <input type="text" data-tsn="${i}" value="${escH(it.name)}" placeholder="Name" aria-label="Supporter ${i + 1} name">
+      <input type="text" data-tsa="${i}" value="${escH(it.amount)}" placeholder="${escH(S.w.tips.cur || "₹")}500" aria-label="Supporter ${i + 1} amount">
+      <button type="button" class="icon-btn" data-tsx="${i}" title="Remove" aria-label="Remove supporter ${i + 1}">×</button></div>`).join("");
+  }
+  const amountOf = a => { const m = String(a || "").replace(/,/g, "").match(/\d+(\.\d+)?/); if (!m) return 0;
+    let n = parseFloat(m[0]); const suf = String(a).slice(String(a).indexOf(m[0]) + m[0].length).trim().toLowerCase();
+    if (/^k\b|^k$/.test(suf)) n *= 1e3; else if (/^(l|lakh|lac)/.test(suf)) n *= 1e5; else if (/^(m|cr)/.test(suf)) n *= suf.startsWith("cr") ? 1e7 : 1e6; return n; };
   function renderPicker() {
     $("#picker").innerHTML = TYPES.map(([k, l, s]) => `<button type="button" class="key" data-type="${k}" aria-pressed="${k === S.type}">${l}<small>${YT_ONLY.includes(k) && S.platform === "twitch" ? "YouTube only" : s}</small></button>`).join("");
   }
@@ -726,6 +761,8 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
       else if (el.id === "main-any-in") { const v = el.value.replace(/[^\w .-]/g, "").trim(); if (!v) return; S.look.font = v; }
       else if (el.dataset.sl) W().items[+el.dataset.sl].label = el.value;
       else if (el.dataset.sv) W().items[+el.dataset.sv].value = el.value;
+      else if (el.dataset.tsn) W().items[+el.dataset.tsn].name = el.value;
+      else if (el.dataset.tsa) W().items[+el.dataset.tsa].amount = el.value;
       else return;
       changed();
     });
@@ -752,6 +789,9 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
       if (b.id === "skin-reset") { const s = SKINS[S.look.skin]; Object.assign(S.look, { a: s.a, b: s.b, t: s.t, p: s.p, po: s.po }); return changed(); }
       if (b.id === "soc-add") { W().items.push({ icon: "at", label: "", value: "" }); return changed(); }
       if (b.dataset.sx) { W().items.splice(+b.dataset.sx, 1); return changed(); }
+      if (b.id === "ts-add") { if (W().items.length >= 10) return; W().items.push({ name: "", amount: "" }); changed(); renderTopsup(true); const ins = $$("#ts [data-tsn]"); if (ins.length) ins[ins.length - 1].focus(); return; }
+      if (b.dataset.tsx) { W().items.splice(+b.dataset.tsx, 1); changed(); return renderTopsup(true); }
+      if (b.id === "ts-sort") { W().items.sort((x, y) => amountOf(y.amount) - amountOf(x.amount)); changed(); return renderTopsup(true); }
       if (b.id === "snd-test") return post({ spw: "sound" });
       if (b.id === "test-yt") return testYT();
       if (b.id === "copy") return copyLink();
@@ -762,6 +802,17 @@ textarea { resize: vertical; min-height: 80px; line-height: 1.45; }
       }
     });
     F.addEventListener("keydown", e => { const l = e.target.closest("label[for]"); if (l && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); $("#" + l.htmlFor).click(); } });
+    F.addEventListener("change", e => {
+      if (e.target.id !== "ts-in") return;
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => { try { const d = JSON.parse(r.result), list = d.live && d.live.supporters;
+        if (!Array.isArray(list)) throw 0;
+        const got = list.filter(x => x && String(x.name || "").trim()).map(x => ({ name: String(x.name).trim(), amount: String(x.amount || "").trim() })).slice(0, 10);
+        if (!got.length) { alert("That Stream Pack file has no top supporters filled in yet."); e.target.value = ""; return; }
+        S.w.topsup.items = got; changed(); renderTopsup(true); } catch { alert("That file isn't a Stream Pack settings file."); } e.target.value = ""; };
+      r.readAsText(f);
+    });
     F.addEventListener("change", e => {
       if (e.target.id !== "pack-in") return;
       const f = e.target.files[0]; if (!f) return;
